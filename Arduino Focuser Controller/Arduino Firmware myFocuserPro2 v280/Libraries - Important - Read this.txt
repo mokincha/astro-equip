@@ -1,0 +1,24 @@
+Unzip the Arduino Firmware myFocuserPro2 v2xx.zip file
+Locate the folder myFocuserPro2libraries, and in that folder 
+
+There should be SIXTEEN folders
+	Bounce2
+	LCD5110_Basic
+	myAFMotor
+	myDallasTemperature
+	myDHT21
+	myEEPROM
+	myHalfStepper
+	myI2cKeypad
+	myIRRemote
+	myOLED
+	myQueue
+	myRotaryEncoder
+	myTFTv2
+	myUTFT
+	newliquidCrystal
+	OneWire
+
+Move these folders to the Arduino\libraries folder in your Documents folder (for windows). Replace any existing folders or files.
+
+Do not edit or replace any of these files. They have been edited and modified to use with the myFocuserPro firmware.

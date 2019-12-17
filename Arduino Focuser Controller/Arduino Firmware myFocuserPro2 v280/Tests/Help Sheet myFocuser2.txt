@@ -1,0 +1,56 @@
+Please provide the following information
+
+Windows Operating System (eg Win7, 64 bit, Win8, 32 bit)
+
+
+
+.Net Framework Installed (see control panel) - should have been installed when installing the application if it was not already present (4 or higher)
+
+
+
+ASCOM platform version
+
+
+
+myFocuser Software
+	Version Number: Windows Application
+
+
+	Version Number: ASCOM driver
+
+
+What other software you may have been using to connect to the focuser (MaximDL, FocusMax - include version numbers) when the problem occured
+
+
+Arduino Firmware
+	Filename/Version Number:
+
+
+	Have you modified the code? 
+
+
+
+Which additional components are you using? LCD, TFT, Push Buttons, InfraRed, Rotary Encoder, Blue-Tooth
+
+
+Does your controller have the Protection circuit for Vin? LM7808?
+
+
+What power sources are you using? 	USB	5V	9V	12V	Car-Battery
+
+
+Brief description of the problem (if there is more than one problem, please one sheet = one problem)
+
+
+
+
+Is the problem repeatable?
+
+
+
+If so, list the steps required to reproduce the problem
+
+
+
+
+Please generate a logfile, (settings-enable logfile, connect, get firmware, then the list of steps above to reproduce the problem) and include the logfile in your email along with this sheet (answered of course)

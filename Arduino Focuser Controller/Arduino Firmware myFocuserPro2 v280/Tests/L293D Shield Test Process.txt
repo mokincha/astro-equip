@@ -1,0 +1,30 @@
+L293D Shield Plus Uno
+Best way is to work through this in a logical systematic way, checking off each part one at a time
+
+To do this we will use the latest firmware and the latest window app.
+
+First some basic questions
+1. What OS
+2. Firmware rev (the .ino code) - it must be no changes made
+3. Stepper motor connected, what type of stepper motor?
+4. What ports (M3/M4) on the L293D shield do you have the motor wired to? A photo is helpful
+5. What power voltage are you using for the stepper?
+6. Is this power voltage connected to the EXTN PWR Connector? A photo is useful
+(If you have a multimeter what is voltage measured at this EXTN PWR connector?
+7. The PWR jumper on the L293D is in default position? A photo is useful
+
+Please run test program for motor
+BasicL293DTest.ino
+Did this test pass?
+
+Push Buttons working? If not, What was result of TestPB.ino ?
+
+LCD Working? If not, What was result of TestLCDI2C.ino ?
+If yes, what shows on the screen?
+Can you change the LCD update rate using the windows app?
+
+
+
+
+
+

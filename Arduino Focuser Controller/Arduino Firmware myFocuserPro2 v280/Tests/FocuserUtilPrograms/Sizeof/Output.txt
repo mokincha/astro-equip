@@ -1,0 +1,15 @@
+Sizeof char = 1
+Sizeof int = 2
+Sizeof long = 4
+Sizeof float = 4
+Sizeof double = 4
+========================================================================
+myFocuserPro2 Struct v278
+Data Size=32
+nlocations=32
+Assuming 
+30 focuser writes per session, 
+10666.67 sessions or nights of imaging.
+If imaging evernight, then focuser should last approx (years) 29.22
+If imaging once a week, then focuser should last approx (years) 205.13
+

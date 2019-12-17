@@ -1,0 +1,84 @@
+VIDEOS
+------
+myFocuserPro2M ULN2003 
+https://www.youtube.com/watch?v=5dNatyl2yk0
+
+myFocuserPro2M DRV8825 
+https://www.youtube.com/watch?v=Pgm9UNhY1oo
+
+Part1a Working Out Your Hardware Requirements
+https://youtu.be/J6vh_iS2JsE
+
+Part1b Assembling your focuser
+https://youtu.be/aB0vM2evxEM
+
+Part1c Testing your focuser
+https://youtu.be/Kye_BaU67Aw
+
+Part1d Adjusting the stepper motor current of the myFocuserPro2 controller
+https://youtu.be/u2Z0dFaiiyM
+
+Part2a Get The Software
+https://youtu.be/KwAxsUjqi_o
+
+Part2b Load ASCOM and Arduino IDE and Libraries
+https://youtu.be/m1BJGCBR-nU
+
+Part2c Programming the Firmware
+https://youtu.be/2f4X6omc2NI
+
+Part3a Initial setup of Focuser settings
+https://youtu.be/mZmWG_vQ1uM
+
+Part3b Overview of Focuser settings
+https://youtu.be/yuXUDxkdAgU
+
+Part3c Overview of Windows App Menu Options
+https://youtu.be/jsq7kXDv3_Y
+
+Part3d Overview of ASCOM Driver Settings
+https://youtu.be/Gh4dpqDFouQ
+
+Part3e Upgrading the Controller Firmware
+https://youtu.be/cSvOVw8Djsw
+
+Part3f Controlling more than one myFocuserPro2 controller
+https://youtu.be/sEvvWYNMCFs
+
+Part4 myFocuserPro2 Home Position Switch
+https://youtu.be/ADi2W0nsypI
+
+Part5a myFocuserPro2 Temperature Compensation
+https://youtu.be/YXRqP-V1fcM
+
+Part5b Understanding temperature compensation in myFocuserPro2
+https://youtu.be/uIEgBXL9Cks
+
+Part6 Using a 4x4 keypad with myFocuserPro2
+https://youtu.be/Xws4XfaG-3s
+
+myFocuserPro2M ULN2003 
+https://www.youtube.com/watch?v=5dNatyl2yk0
+
+myFocuserPro2M DRV8825 
+https://www.youtube.com/watch?v=Pgm9UNhY1oo
+
+myFocuserPro Arduino Focuser Part 1
+https://www.youtube.com/watch?v=Ap4k-0QlNwQ
+
+myFocuserPro Arduino Focuser Part 2
+https://www.youtube.com/watch?v=MaQzxvlpFWE
+
+myFocuserPro Arduino Focuser Part 3
+https://www.youtube.com/watch?v=j5l-s9YrlL0
+
+myFocuserPro with Rotary Encoder
+https://youtu.be/9CnBHNKSRgs
+
+myFocuserPro Breadboarding Nano and EasyDriver
+https://www.youtube.com/watch?v=O3rwse9nAsI
+
+Backlight control LCD1602 for Arduino
+https://www.youtube.com/watch?v=wg1SThdeXhg
+
+https://sourceforge.net/projects/arduinoascomfocuserpro2diy/files/Project%20Videos/
