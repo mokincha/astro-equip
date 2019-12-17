@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28917.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASCOM PV 10 Pos Filterwheel Driver", "ASCOM PV 10 Pos Filterwheel Driver.csproj", "{64308775-BD4A-469C-BCAB-3ED830B811AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASCOM PV 10pos Filter Wheel", "..\ASCOM_PV_10pos_Filter_Wheel\ASCOM PV 10pos Filter Wheel\ASCOM PV 10pos Filter Wheel.csproj", "{57940143-BB6A-450E-88F4-CF40C8A9B634}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|x64.ActiveCfg = Debug|x64
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|x64.Build.0 = Debug|x64
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|x86.ActiveCfg = Debug|x86
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|x86.Build.0 = Debug|x86
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|x64.ActiveCfg = Release|x64
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|x64.Build.0 = Release|x64
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|x86.ActiveCfg = Release|x86
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|x86.Build.0 = Release|x86
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Debug|x64.Build.0 = Debug|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Debug|x86.Build.0 = Debug|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Release|x64.ActiveCfg = Release|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Release|x64.Build.0 = Release|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Release|x86.ActiveCfg = Release|Any CPU
+		{57940143-BB6A-450E-88F4-CF40C8A9B634}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {59366E7F-5FD1-46AB-8F4D-8204DD4A61C3}
+	EndGlobalSection
+EndGlobal

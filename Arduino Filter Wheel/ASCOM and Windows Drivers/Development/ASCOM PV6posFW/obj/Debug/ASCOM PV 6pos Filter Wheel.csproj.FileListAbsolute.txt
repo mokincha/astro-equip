@@ -1,0 +1,27 @@
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.PV_6pos.FilterWheel.dll.config
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.PV_6pos.FilterWheel.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.PV_6pos.FilterWheel.pdb
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Astrometry.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Attributes.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Controls.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.DeviceInterfaces.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Exceptions.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.SettingsProvider.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Utilities.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Utilities.Video.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Internal.Extensions.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Astrometry.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Attributes.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Controls.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.DeviceInterfaces.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Exceptions.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.SettingsProvider.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Utilities.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\bin\Debug\ASCOM.Internal.Extensions.xml
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM.PV_6pos.Properties.Resources.resources
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM.PV_6pos.SetupDialogForm.resources
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM PV 6pos Filter Wheel.csproj.GenerateResource.cache
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM PV 6pos Filter Wheel.csproj.CoreCompileInputs.cache
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM PV 6pos Filter Wheel.csproj.CopyComplete
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM.PV_6pos.FilterWheel.dll
+C:\Temp\Development\ASCOM PV 6pos Filter Wheel\obj\Debug\ASCOM.PV_6pos.FilterWheel.pdb

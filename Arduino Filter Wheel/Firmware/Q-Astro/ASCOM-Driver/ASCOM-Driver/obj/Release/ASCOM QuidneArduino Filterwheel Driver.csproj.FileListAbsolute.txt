@@ -1,0 +1,26 @@
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.QuidneArduino.FilterWheel.dll.config
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.QuidneArduino.FilterWheel.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.QuidneArduino.FilterWheel.pdb
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.QuidneArduino.FilterWheel.tlb
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Astrometry.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Attributes.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Controls.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.DeviceInterfaces.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Exceptions.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.SettingsProvider.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Utilities.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Utilities.Video.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Internal.Extensions.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Astrometry.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Attributes.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Controls.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.DeviceInterfaces.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Exceptions.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.SettingsProvider.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Utilities.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\bin\Release\ASCOM.Internal.Extensions.xml
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\obj\Release\ASCOM.QuidneArduino.Properties.Resources.resources
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\obj\Release\ASCOM.QuidneArduino.SetupDialogForm.resources
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\obj\Release\ASCOM QuidneArduino Filterwheel Driver.csproj.GenerateResource.Cache
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\obj\Release\ASCOM.QuidneArduino.FilterWheel.dll
+C:\Users\Raoul\OneDrive - QUIDNE IT LTD\Astronomy\Filter Wheel\QuidneIT-FilterWheel\Driver\CS\obj\Release\ASCOM.QuidneArduino.FilterWheel.pdb
