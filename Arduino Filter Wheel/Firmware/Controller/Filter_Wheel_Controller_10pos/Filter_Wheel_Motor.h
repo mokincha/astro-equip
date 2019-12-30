@@ -68,12 +68,13 @@
 
 #define HOME_SEARCH_SPEED_FAST  			100
 #define HOME_SEARCH_SPEED_SLOW  			10
-#define MOTOR_STEPS  						200
+#define MOTOR_STEPS_PER_REVOLUTION  		200
 #define MICROSTEPS  						16
+#define MICROSTEPS_PER_REVOLUTION           ( MOTOR_STEPS_PER_REVOLUTION * MICROSTEPS )
 
 #define HOME_SEEK_STEP_SIZE_IN_STEPS  		2
 //#define HOME_SEEK_STEP_SIZE_IN_DEG  		0.25f
-#define HOME_SEEK_STEP_SIZE_IN_DEG  		( 360.0f * HOME_SEEK_STEP_SIZE_IN_STEPS / ( MOTOR_STEPS * MICROSTEPS ) )
+#define HOME_SEEK_STEP_SIZE_IN_DEG  		( 360.0f * HOME_SEEK_STEP_SIZE_IN_STEPS / ( MOTOR_STEPS_PER_REVOLUTION * MICROSTEPS ) )
 
 #define NORMAL_SPEED  						200
 #define	POSITION_SEEK_STEP_SIZE_IN_STEPS	2
@@ -110,7 +111,7 @@ public:
 	tFWM_Result		Init( float fFull_Angle, uint8_t uNum_Filters );
 
 	// should be private.  Temporarily public for debugging of adaptive sensor reading
-	void  Read_Sensors( bool* bHome_Sensor_Active, bool* bPosition_Sensor_Active );
+	void        Read_Sensors( bool* bHome_Sensor_Active, bool* bPosition_Sensor_Active );
 
 	tFWM_Result	Find_Home( void );
 	bool		Is_Moving( void );
@@ -131,8 +132,11 @@ public:
 
 private:
 
-	bool	Is_Home_Sensor_Active( void );
-	bool	Is_Position_Sensor_Active( void );
+    uint8_t     Position_To_Filter( uint16_t position );
+    uint16_t    Filter_To_Position( uint8_t filter );
+
+	bool    	Is_Home_Sensor_Active( void );
+	bool    	Is_Position_Sensor_Active( void );
 
 	// private member variables
 	float	fFull_Filter_Angle;
@@ -141,6 +145,7 @@ private:
 	bool	bFound_Home;
 	float	fCurrent_Angle;
 	uint8_t	uCurrent_Filter;
+    uint8_t	uTarget_Filter;
 
 };
 
