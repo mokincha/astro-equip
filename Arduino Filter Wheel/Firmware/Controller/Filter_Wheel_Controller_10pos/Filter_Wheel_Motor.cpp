@@ -304,6 +304,8 @@ long    Filter_Wheel_Motor_Class::Filter_To_Position( uint8_t filter ) {
 | PURPOSE:
 |
 | DESCRIPTION:
+|		Step 1: find any position sensor
+|		Step 2: move through all the filter positions, looking for which one is home.
 |
 | HISTORY:
 |
@@ -315,7 +317,8 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	bool    bHome_Sensor_Active;
 	bool    bPosition_Sensor_Active;
 	bool    bFast_Search = true;
-	float   fSearch_Angle = 0;
+	float   fSearch_Angle;
+	long	lSteps_per_Filter;
 
 	int16_t iPosition_Marker_Width;
 
@@ -338,54 +341,47 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	motor.setAcceleration( HOME_ACCELERATION );
 	motor.enableOutputs();
 
-	while ( !bHome && !bGone_Too_Far ) {
 
-//		FWM_DEBUG_MSG_LN( "Not home yet" );
+	fSearch_Angle = 0;
+	// Step 1: Find a position sensor.
+	while ( ( !Is_Position_Sensor_Active() ) && ( fSearch_Angle <= ( FULL_WHEEL_ANGLE / this->uNum_Filters ) ) ) {
 
-		// check the home & position sensors.  We're home when both are active
-		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+		motor.move( HOME_SEEK_STEP_SIZE_IN_STEPS );
+		motor.runToPosition();	   
 
-#if 0
-		FWM_DEBUG_MSG( "Home: " );
-		FWM_DEBUG_MSG_VAL( bHome_Sensor_Active, DEC );
-		FWM_DEBUG_MSG( ", Pos: " );
-		FWM_DEBUG_MSG_VAL( bPosition_Sensor_Active, DEC );
-		FWM_DEBUG_MSG_LN( "" );
-#endif
+		// check if we're searched the entire circle
+		fSearch_Angle += HOME_SEEK_STEP_SIZE_IN_DEG;
+	}
 
-		if ( bPosition_Sensor_Active && bHome_Sensor_Active ) {
-			FWM_DEBUG_MSG_LN( "Found home." );
-			bHome = true;
-		}
+	// exit if we didn't find the sensor
+	if ( !Is_Position_Sensor_Active() ) {
 
-		// we didn't find home, so move the wheel a little
-		if ( !bHome ) {
+		FWM_DEBUG_MSG_LN( "Couldn't find position sensor reading" );
+		return FWM_RESULT_HOMING_FAILED;
+	}
 
-			// if the home sensor is active, but the position sensor isn't, we're close.  Slow down
-			if ( bHome_Sensor_Active && bFast_Search ) {
 
-				motor.setMaxSpeed( HOME_SEARCH_SPEED_SLOW );
-				bFast_Search = false;
-			}
+	// Step 2: Check all positions for the home sensor
+	motor.setCurrentPosition( 0 );
+	fSearch_Angle = 0;
+	lSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION;
 
-			// move the wheel a little
-//			FWM_DEBUG_MSG_LN( "Moving a little..." );
-//			motor.rotate( HOME_SEEK_STEP_SIZE_IN_DEG );
-			motor.move( HOME_SEEK_STEP_SIZE_IN_STEPS );
-			motor.runToPosition();
+	while ( ( !Is_Home_Sensor_Active() ) && ( fSearch_Angle <= FULL_WHEEL_ANGLE ) ) {
 
-			// check if we're searched the entire circle
-			fSearch_Angle += HOME_SEEK_STEP_SIZE_IN_DEG;
+		// Move one filter position
+		motor.move( lSteps_per_Filter );
+		motor.runToPosition();
 
-			if ( fSearch_Angle > 360.0f ) {
+		// update the filter angle we've searched
+		fSearch_Angle += ( FULL_WHEEL_ANGLE / this->uNum_Filters );
+	}
 
-				FWM_DEBUG_MSG_LN( "Can't find home." );
+	if ( Is_Home_Sensor_Active() ) {
+		bHome = true;
+	} else {
 
-				bGone_Too_Far = true;
-				result = FWM_RESULT_HOMING_FAILED;
-			}
-		}
-
+		FWM_DEBUG_MSG_LN( "Couldn't find home sensor reading" );
+		return FWM_RESULT_HOMING_FAILED;	
 	}
 
 	this->bFound_Home = bHome;
@@ -452,6 +448,9 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	// energize coils - the motor will hold position
 	motor.enableOutputs();
 	motor.setCurrentPosition( 0 );
+
+	motor.setMaxSpeed( NORMAL_SPEED );
+	motor.setAcceleration( NORMAL_ACCELERATION );
 
 	FWM_DEBUG_MSG_LN( "FWM Home done" );
 

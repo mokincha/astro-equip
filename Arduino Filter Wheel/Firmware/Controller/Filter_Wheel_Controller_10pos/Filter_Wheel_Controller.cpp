@@ -173,12 +173,12 @@ void    setup() {
     if ( filter_wheel_controller.Find_Home() == FWM_RESULT_SUCCESS ) {
 
         Display_Show_Status( DISPLAY_STATUS_FOUND_HOME );
-        delay( 1000 );
+//        delay( 1000 );
 
     } else {
 
         Display_Show_Status( DISPLAY_STATUS_DIDNT_FIND_HOME );
-        delay( 1000 );
+//        delay( 1000 );
     }
 
 
