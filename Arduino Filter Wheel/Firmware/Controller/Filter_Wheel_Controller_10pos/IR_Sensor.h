@@ -58,13 +58,19 @@
 //------------------------------------------------------------
 // Constants
 //------------------------------------------------------------
-#define	FILTER_WHEEL_SENSOR_SAMPLES					3
 
-#define SENSOR_HOME_THRESHOLD_DEFAULT   			160
-#define SENSOR_POSITION_THRESHOLD_DEFAULT   		160
+#define	LED_LIGHT_DELAY								10
 
-#define SENSOR_ADAPTIVE_THRESHOLD_MAX_DISTANCE		200		// the global min/max have to be within this distance from the defaults to be considered valid
-#define SENSOR_ADAPTIVE_THRESHOLD_MIN_DISTANCE		40		// the global min/max have to be within this distance from the defaults to be considered valid
+#define	FILTER_WHEEL_SENSOR_SAMPLES					5
+
+#define	IRS_HOME_THRESHOLD_FACTOR					( 0.7f )
+#define	IRS_POSITION_THRESHOLD_FACTOR				( 0.7f )
+
+#define SENSOR_HOME_ADAPTIVE_THRESHOLD_MAX_DIFF				775		// the global min/max difference has to be within this distance from the defaults to be considered valid
+#define SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF				720		// the global min/max difference has to be at least this distance from the defaults to be considered valid
+																	//
+#define SENSOR_POSITION_ADAPTIVE_THRESHOLD_MAX_DIFF			850		// the global min/max difference has to be within this distance from the defaults to be considered valid
+#define SENSOR_POSITION_ADAPTIVE_THRESHOLD_MIN_DIFF			650		// the global min/max difference has to be at least this distance from the defaults to be considered valid
 
 
 //------------------------------------------------------------
@@ -75,6 +81,8 @@ void	Init_Sensors( void );
 
 // should be private.  Temporarily public for debugging of adaptive sensor reading
 void    Read_Sensors( bool* bHome_Sensor_Active, bool* bPosition_Sensor_Active );
+
+void	Read_Sensors_Debug( void );
 
 bool   	Is_Home_Sensor_Active( void );
 bool   	Is_Position_Sensor_Active( void );

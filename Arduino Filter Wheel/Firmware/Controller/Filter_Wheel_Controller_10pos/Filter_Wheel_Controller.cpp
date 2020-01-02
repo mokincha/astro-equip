@@ -64,6 +64,8 @@ Filter_Wheel_Motor_Class  filter_wheel_controller;
 //*********************************************************
 
 // Position tracking variables
+int		iEncoder_Last_Position;
+
 int 	iLast_Reported_Position;
 int 	iTarget_Position;
 int     iCurrent_Position;
@@ -177,6 +179,8 @@ void    setup() {
 
     } else {
 
+		IMA_MSG_LN( "Boot-up homing failed!" );
+
         Display_Show_Status( DISPLAY_STATUS_DIDNT_FIND_HOME );
 //        delay( 1000 );
     }
@@ -195,7 +199,9 @@ void    setup() {
     //---------------------------------------------
     // Prepare the rotation knob
     //---------------------------------------------
-    encoder.setPosition( 0 / ROTARYSTEPS ); // start with the value of 10.
+    encoder.setPosition( 0  );
+	iEncoder_Last_Position = encoder.getPosition();
+
 
     //---------------------------------------------
     // Update the display
@@ -232,36 +238,52 @@ void    setup() {
 void    loop() {
 
     String ASCOMcmd;
+	static bool	bWas_Moving = false;
 
-    bool  bDone_Moving;
+	bool	bHome_Sensor_Active;
+	bool	bPosition_Sensor_Active;
+
 
 #if 0
 // service serial commands
     CommandParserService();
 #endif
 
+	//---------------------------------------------
+	// Reset the MCU if the knob is pressed.  This seems a little extreme...
+	//---------------------------------------------
+	if ( digitalRead( PIN_KNOB_SWITCH ) == LOW ) {
+		//  Call reset
+		resetFunc(); 
+	}
+
     //---------------------------------------------
     // Monitor knob
     //---------------------------------------------
     encoder.tick();
 
-    // Reset the MCU if the knob is pressed.  This seems a little extreme...
-    if ( digitalRead( PIN_KNOB_SWITCH ) == LOW ) {
-        //  Call reset
-        resetFunc(); 
-    }
-
 
     //---------------------------------------------
     // get the current physical position and calc the logical position
     //---------------------------------------------
-    iTarget_Position = encoder.getPosition();
+    if ( iEncoder_Last_Position != encoder.getPosition() ) {
 
+//		Serial.print( "Encoder: " );
+//		Serial.println( encoder.getPosition(), DEC );
+
+		iTarget_Position += ( encoder.getPosition() - iEncoder_Last_Position );
+
+		iEncoder_Last_Position = encoder.getPosition();
+	}
+
+	//---------------------------------------------
     // Roll over/under knob position
-    if ( iTarget_Position < ROTARYMIN ) {
-        iTarget_Position = ROTARYMAX;
-    } else if ( iTarget_Position > ROTARYMAX ) {
-        iTarget_Position = ROTARYMIN;
+	//---------------------------------------------
+    while ( iTarget_Position < 0 ) {
+        iTarget_Position += NUM_FILTERS;
+	}
+    while ( iTarget_Position >= NUM_FILTERS ) {
+        iTarget_Position -= NUM_FILTERS;
     }
 
 
@@ -271,31 +293,46 @@ void    loop() {
     // Serial command overrides any position commands from the knob
     //---------------------------------------------
     if ( Serial.available() > 0 ) {
+
         ASCOMcmd = Serial.readStringUntil( '#' );  // Terminator so arduino knows when the message ends
+
         if ( ASCOMcmd == "GETFILTER" ) {
             Serial.print( iLast_Reported_Position );
             Serial.println( "#" );  // Similarly, so ASCOM knows
 
         } else if ( ASCOMcmd == "FILTER0" ) {
             iTarget_Position = 0;
+
         } else if ( ASCOMcmd == "FILTER1" ) {
             iTarget_Position = 1;
+
         } else if ( ASCOMcmd == "FILTER2" ) {
             iTarget_Position = 2;
+
         } else if ( ASCOMcmd == "FILTER3" ) {
             iTarget_Position = 3;
+
         } else if ( ASCOMcmd == "FILTER4" ) {
             iTarget_Position = 4;
+
         } else if ( ASCOMcmd == "FILTER5" ) {
             iTarget_Position = 5;
+
         } else if ( ASCOMcmd == "FILTER6" ) {
             iTarget_Position = 6;
+
         } else if ( ASCOMcmd == "FILTER7" ) {
             iTarget_Position = 7;
+
         } else if ( ASCOMcmd == "FILTER8" ) {
             iTarget_Position = 8;
+
         } else if ( ASCOMcmd == "FILTER9" ) {
             iTarget_Position = 9;
+
+		} else if ( ASCOMcmd == "R" ) {
+			Read_Sensors_Debug();
+
         }
     }
 
@@ -303,7 +340,8 @@ void    loop() {
     //---------------------------------------------
     // Move the wheel if it's not where we want it to be
     //---------------------------------------------
-    if ( iCurrent_Position != iTarget_Position ) {
+	if ( ( iCurrent_Position != iTarget_Position ) ) {
+//    if ( ( iCurrent_Position != iTarget_Position ) && filter_wheel_controller.Is_Moving() ) {
 
         // request the wheel move to the new position.   This routine is non-blocking
         // since the move takes time.
@@ -315,7 +353,58 @@ void    loop() {
     //---------------------------------------------
     //  Service the filter wheel motor task
     //---------------------------------------------
-    bDone_Moving = filter_wheel_controller.Service();
+    filter_wheel_controller.Service();
+
+
+	//---------------------------------------------
+	// check if we just stopped moving
+	//---------------------------------------------
+	if ( bWas_Moving && !filter_wheel_controller.Is_Moving() ) {
+
+//        Serial.println( "Stopped moving" );
+
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+
+		// Just stopped moving.  Check the position sensor
+		if ( !bPosition_Sensor_Active ) {
+
+			Serial.println( "Out of position.  Homing" );
+
+			// save the current target position
+			iTarget_Position = filter_wheel_controller.Get_Current_Filter();
+
+			// We have a problem.  Can't find the position sensor.  Need to home and return to target position
+			while ( filter_wheel_controller.Find_Home() != FWM_RESULT_SUCCESS ) {
+
+				Display_Show_Status( DISPLAY_STATUS_DIDNT_FIND_HOME );
+		        delay( 500 );
+			}
+
+			Display_Show_Status( DISPLAY_STATUS_FOUND_HOME );
+	        delay( 500 );
+
+			// go back to the target position
+			Serial.print( "Returning to " );
+			Serial.println( iTarget_Position, DEC );
+
+
+			filter_wheel_controller.Set_Target_Filter( iTarget_Position );
+		} else {
+
+			// Position sensor is active
+			if ( bHome_Sensor_Active ) {
+
+				IMA_MSG_LN( "Home active" );
+				 if ( filter_wheel_controller.Get_Current_Filter() != 0 ) {
+					
+					IMA_MSG_LN( "Auto-reseting to home position" );
+					filter_wheel_controller.Set_Current_Position_As_Home();
+				}
+			}
+		}
+	}
+
+	bWas_Moving = filter_wheel_controller.Is_Moving();
 
 
     //---------------------------------------------
@@ -324,33 +413,33 @@ void    loop() {
     iCurrent_Position = filter_wheel_controller.Get_Current_Filter();
 
     // report the current position to the host PC and display
-    if ( iLast_Reported_Position != iCurrent_Position) {
+    if ( ( iLast_Reported_Position != iCurrent_Position) && !filter_wheel_controller.Is_Moving() ) {
 
         // report the current position to the host PC
         Serial.print( iCurrent_Position );
         Serial.println( "#" );      // send ASCOM terminator
 
-        // Update the display 
+		// set the encoder to the current position
+//		encoder.setPosition( iCurrent_Position );
+
+        // Update the display
         bUpdate_Display = true;
 
-		// set the encoder to the current position
-		encoder.setPosition( iCurrent_Position );
-	
 		// remember what the last reported position was
         iLast_Reported_Position = iCurrent_Position;
     }
 
-#if 0
     //---------------------------------------------
     // Update the display
     //---------------------------------------------
-    if ( bDisplay_Ready && bUpdate_Display && bDone_Moving ) {
+    if ( bDisplay_Ready && bUpdate_Display && !filter_wheel_controller.Is_Moving() ) {
 
-        Display_Show_Position( iTarget_Position );
+		// Only update the display if we're not moving, so as to not screw with the stepper timing.
+		Display_Show_Position(iTarget_Position);
 
-        bUpdate_Display = false;
+		bUpdate_Display = false;
+
     }
-#endif
 
 }
 
@@ -362,7 +451,11 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
 
     display.clearDisplay();
 
-    switch ( display_status ) {
+	display.setTextSize( 3 ); // Draw 2X-scale text
+	display.setTextColor( WHITE );
+	display.setCursor( 0, 16 );
+
+	switch ( display_status ) {
 
     case  DISPLAY_STATUS_BOOTING_UP:
 
@@ -370,14 +463,8 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
 
     case DISPLAY_STATUS_SEARCHING_FOR_HOME:
 
-        display.clearDisplay();
-
-        display.setTextSize( 3 ); // Draw 2X-scale text
-        display.setTextColor( WHITE );
-        display.setCursor( 0, 16 );
-        display.print( "Finding" );
-        display.println( " Home" );
-        display.display();    // Show initial text
+        display.print( F( "Finding" ) );
+        display.println( F( " Home" ) );
 
         break;
 
@@ -385,32 +472,21 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
 
         display.clearDisplay();
 
-        display.setTextSize( 3 ); // Draw 2X-scale text
-        display.setTextColor( WHITE );
-        display.setCursor( 0, 16 );
-        display.print( "Located" );
-        display.println( " Home" );
-        display.display();    // Show initial text
+        display.print( F( "Located" ) );
+        display.println( F( " Home" ) );
 
         break;
 
     case DISPLAY_STATUS_DIDNT_FIND_HOME:
 
-        display.clearDisplay();
-
-        display.setTextSize( 3 ); // Draw 2X-scale text
-        display.setTextColor( WHITE );
-        display.setCursor( 0, 16 );
-        display.print( "  Didn't" );
-        display.println( "Find Home" );
-        display.display();    // Show initial text
+        display.print( F( " Didn't" ) );
+        display.println( F( "Find Home" ) );
 
         break;
 
     }
 
     display.display();
-
 }
 
 
@@ -419,12 +495,13 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
 //---------------------------------------------
 void  Display_Show_Position( uint8_t  pos ) {
 
+#if 1
     display.clearDisplay();
 
-    display.setTextSize( 3 ); // Draw 2X-scale text
+    display.setTextSize( 3 ); // Draw 3X-scale text
     display.setTextColor( WHITE );
     display.setCursor( 10, 16 );
-    display.print( "Pos: " );
+    display.print( F( "Pos: " ) );
     display.println( pos );
 
     display.setTextSize( 2 ); // Draw 2X-scale text
@@ -432,38 +509,40 @@ void  Display_Show_Position( uint8_t  pos ) {
     display.setCursor( 10, 45 );
 
     switch ( pos ) {
-    case 0:
-        display.println( "   Open" );
-        break;
-    case 1:
-        display.println( "   Dark" );
-         break;
-    case 2:
-        display.println( " All Pass" );
-        break;
-    case 3:
-        display.println( "   Red" );
-        break;
-    case 4:
-        display.println( "  Green" );
-        break;
-    case 5:
-        display.println( "   Blue" );
-        break;
-    case 6:
-        display.println( "   LPF" );
-        break;
-    case 7:
-        display.println( " Grating" );
-        break;
-    case 8:
-        display.println( " ND Moon" );
-        break;
-    case 9:
-        display.println( "  Aux 1" );
-        break;
+
+		case 0:
+			display.println( F( "   Open" ) );
+			break;
+		case 1:
+			display.println( F( "   Dark" ) );
+			 break;
+		case 2:
+			display.println( F( " All Pass" ) );
+			break;
+		case 3:
+			display.println( F( "   Red" ) );
+			break;
+		case 4:
+			display.println( F( "  Green" ) );
+			break;
+		case 5:
+			display.println( F( "   Blue" ) );
+			break;
+		case 6:
+			display.println( F( " H-alpha" ) );
+			break;
+		case 7:
+			display.println( F( " Grating" ) );
+			break;
+		case 8:
+			display.println( F( " ND Moon" ) );
+			break;
+		case 9:
+			display.println( F( "   LPF" ) );
+			break;
     }
 
     display.display();
 
+#endif
 }

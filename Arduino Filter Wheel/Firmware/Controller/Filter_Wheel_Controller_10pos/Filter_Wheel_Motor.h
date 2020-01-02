@@ -66,8 +66,8 @@
 #define MICROSTEPS  						16
 #define MICROSTEPS_PER_REVOLUTION           ( MOTOR_STEPS_PER_REVOLUTION * MICROSTEPS )
 
-#define NORMAL_SPEED  						10000
-#define	NORMAL_ACCELERATION					10000
+#define NORMAL_SPEED  						6000
+#define	NORMAL_ACCELERATION					6000
 #define	POSITION_SEEK_STEP_SIZE_IN_STEPS	( MICROSTEPS_PER_REVOLUTION / 360 )
 
 #define	HOME_ACCELERATION					1000
@@ -106,14 +106,15 @@ class	Filter_Wheel_Motor_Class {
 	// Public Methods
 public:
 
-	tFWM_Result		Init( float fFull_Angle, uint8_t uNum_Filters );
+	tFWM_Result		Init( float fFull_Angle, int8_t iNum_Filters );
 
 	tFWM_Result	Find_Home( void );
+	void		Set_Current_Position_As_Home( void );
 	bool		Is_Moving( void );
 	bool    	Service( void );
 
 	// Global Operations
-	tFWM_Result	Set_Target_Filter( uint8_t uFilter );
+	tFWM_Result	Set_Target_Filter( int8_t iFilter );
 	uint8_t		Get_Current_Filter( void );
 
 	tFWM_Result	Set_Drive_Mode( uint8_t uFilter );
@@ -131,13 +132,16 @@ private:
     long    Filter_To_Position( uint8_t filter );
 
 	// private member variables
+
+	long	lSteps_per_Filter;
+
 	float	fFull_Filter_Angle;
-	uint8_t	uNum_Filters;
+	int8_t	iNum_Filters;
 
 	bool	bFound_Home;
 	float	fCurrent_Angle;
-	uint8_t	uCurrent_Filter;
-    uint8_t	uTarget_Filter;
+	int8_t	iCurrent_Filter;
+    int8_t	iTarget_Filter;
 
 };
 

@@ -1,8 +1,8 @@
 /*------------------------------------------------------------
-| Lamp_Controller.cpp           ( c ) 2012 Peripheral Vision, Inc.
+| Filter_Wheel_Motor.cpp           ( c ) 2019 Peripheral Vision, Inc.
 |-------------------------------------------------------------
 |
-| PURPOSE: Basic lamp control functions
+| PURPOSE: Control filter wheel stepper motor
 |
 | DESCRIPTION:
 |
@@ -19,7 +19,7 @@
 //------------------------------------------------------------
 //	Constants
 //------------------------------------------------------------
-
+#define	FWM_USE_WRAP_AROUND			1
 
 //------------------------------------------------------------
 //	Global Variables
@@ -45,17 +45,18 @@ tFWM_State	g_State;
 | HISTORY:
 |
 ------------------------------------------------------------*/
-tFWM_Result    Filter_Wheel_Motor_Class::Init( float fFull_Angle, uint8_t uNum_Filters ) {
+tFWM_Result    Filter_Wheel_Motor_Class::Init( float fFull_Angle, int8_t iNum_Filters ) {
 
 	FWM_DEBUG_MSG_LN( "FWM Init start" );
 
 	// save passed params
 	this->fFull_Filter_Angle = fFull_Angle;
-	this->uNum_Filters = uNum_Filters;
+	this->iNum_Filters = iNum_Filters;
 
 	// set up internal variables
 	this->bFound_Home = false;
 	this->fCurrent_Angle = 0.0f;
+	this->lSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->iNum_Filters ) * MICROSTEPS_PER_REVOLUTION;
 
 	// Init the motor state
 	g_State = FWM_STATE_STOPPED;
@@ -88,44 +89,40 @@ tFWM_Result    Filter_Wheel_Motor_Class::Init( float fFull_Angle, uint8_t uNum_F
 | HISTORY:
 |
 ------------------------------------------------------------*/
-tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( uint8_t uFilter ) {
+tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( int8_t iFilter ) {
 
 	tFWM_Result	result;
-
+	int8_t	iFilter_Positions_to_Move_CW;
 	long	lTarget_Postion;
-	long	lSteps_per_Filter;
 
 	result = FWM_RESULT_SUCCESS;
 
     // see if we're already moving to the requested filter position
-    if ( this->uTarget_Filter == uFilter ) {
+    if ( this->iTarget_Filter == iFilter ) {
+		// already heading to this position.  No need to do anythning different
         return result;
     }
 
     // make sure the requested position is valid
-    if ( uFilter >= this->uNum_Filters ) {
+    if ( iFilter >= this->iNum_Filters ) {
         return FWM_RESULT_INVALID_PARAMETER;
     }
 
     // save the new ( valid ) target filter
-    this->uTarget_Filter = uFilter;
+    this->iTarget_Filter = iFilter;
 
 	//------------------------------------------------------------
 	//	Ensure we're homed
 	//------------------------------------------------------------
-
-	// first, make sure we know where home is...
 	if ( !this->bFound_Home ) {
 
+		// try to find home again
 		result = Find_Home();
 
-		if ( result != FWM_RESULT_SUCCESS ) {
-			return result;
+		// exiting and report if any errors
+		if ( result != FWM_RESULT_SUCCESS ) { 
+			return result; 
 		}
-
-		motor.setMaxSpeed( NORMAL_SPEED );
-		motor.setAcceleration( NORMAL_ACCELERATION );
-
 	}
 
 	//------------------------------------------------------------
@@ -133,17 +130,46 @@ tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( uint8_t uFilter ) {
 	//------------------------------------------------------------
 
 	FWM_DEBUG_MSG( "Current: " );
-	FWM_DEBUG_MSG_VAL( this->uCurrent_Filter, DEC );
+	FWM_DEBUG_MSG_VAL( this->iCurrent_Filter, DEC );
 	FWM_DEBUG_MSG( ", Target: " );
-	FWM_DEBUG_MSG_VAL( this->uTarget_Filter, DEC );
+	FWM_DEBUG_MSG_VAL( this->iTarget_Filter, DEC );
 	FWM_DEBUG_MSG_LN( "" );
 
+#if	FWM_USE_WRAP_AROUND == 0
 	// Don't bother wrapping around or trying to optimize for the circular nature of the filter
-	// I.e. assume this is linear arrangement
+	// I.e. assume the filters are a linear arrangement such that you can't go past the 0 or 9 positions
 
 	// move to the desired position
-	lSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
-	lTarget_Postion = (float)(this->uTarget_Filter) * lSteps_per_Filter; 
+	lTarget_Postion = (float)(this->iTarget_Filter) * this->lSteps_per_Filter; 
+#else
+	// Wrap around.  I.e. rotate in whichever direction gets you to the final position faster
+
+	// First, decide which direction is faster
+	// check CW (normal) direction
+	iFilter_Positions_to_Move_CW = this->iTarget_Filter - this->iCurrent_Filter;
+
+	if ( abs ( iFilter_Positions_to_Move_CW ) <= ( this->iNum_Filters / 2 ) ) {
+
+		// the normal move is the shortest path.  Move as normal
+		lTarget_Postion = (float)(this->iTarget_Filter) * this->lSteps_per_Filter; 
+
+	} else {
+
+		// the normal move is the long way.  Compute a short-cut
+		if ( iFilter_Positions_to_Move_CW >= 0 ) {
+
+			// if the normal move is positive, move negative
+			lTarget_Postion = (float)(this->iTarget_Filter - this->iNum_Filters ) * this->lSteps_per_Filter; 
+
+		} else {
+
+			// normal move is negative, so move positive
+			lTarget_Postion = (float)(this->iTarget_Filter + this->iNum_Filters ) * this->lSteps_per_Filter; 
+
+		}
+	}
+
+#endif
 
 	FWM_DEBUG_MSG( "Target Steps: " );
 	FWM_DEBUG_MSG_VAL( lTarget_Postion, DEC );
@@ -161,7 +187,7 @@ tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( uint8_t uFilter ) {
 	// start the moving
 	motor.moveTo( lTarget_Postion );
 
-	this->uCurrent_Filter = uFilter;
+	this->iCurrent_Filter = iFilter;
 
 	return result;
 }
@@ -179,9 +205,28 @@ tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( uint8_t uFilter ) {
 ------------------------------------------------------------*/
 uint8_t     Filter_Wheel_Motor_Class::Get_Current_Filter( void ) {
 
-	return this->uCurrent_Filter;
+#if 0
+	return this->iCurrent_Filter;
+#else
+	return Position_To_Filter( motor.currentPosition() );
+#endif
 }
 
+
+/*------------------------------------------------------------
+|  Is_Moving
+|-------------------------------------------------------------
+|
+| PURPOSE:
+|
+| DESCRIPTION:
+|
+| HISTORY:
+|
+------------------------------------------------------------*/
+bool	Filter_Wheel_Motor_Class::Is_Moving( void ) {
+	return ( motor.distanceToGo() != 0 );
+}
 
 /*------------------------------------------------------------
 |  Service
@@ -203,6 +248,24 @@ bool    Filter_Wheel_Motor_Class::Service( void ) {
 	// service the stepper motor
 	motor.run();
 
+
+	// Unwind the position if we're no longer moving
+	if ( motor.distanceToGo() == 0 ) {
+
+		// unwrap the current position around, in case we were taking a short-cut
+		while ( motor.currentPosition() < 0 ) {
+			// unwind the position one full CCW revolution
+			motor.setCurrentPosition( motor.currentPosition() + MICROSTEPS_PER_REVOLUTION );
+		}
+
+		while ( motor.currentPosition() >= MICROSTEPS_PER_REVOLUTION ) {
+			// unwind the position one full CW revolution
+			motor.setCurrentPosition( motor.currentPosition() - MICROSTEPS_PER_REVOLUTION );
+		}
+
+	}
+
+	// Service the state machine.  Not sure why is is required anymore...
 	switch ( g_State ) {
 
 		//------------------------------------------------------------
@@ -225,10 +288,8 @@ bool    Filter_Wheel_Motor_Class::Service( void ) {
 
 			bIs_Moving = true;
 
-
 			if ( motor.distanceToGo() == 0 ) {
 
-				// the blind move has completed.  Now we need to verify that the position sensor is active.
 				g_State = FWM_RESULT_SEARCHING_FOR_NEXT_POSITION;
 			}
 
@@ -275,8 +336,20 @@ bool    Filter_Wheel_Motor_Class::Service( void ) {
 uint8_t     Filter_Wheel_Motor_Class::Position_To_Filter( long lPosition ) {
 
     uint8_t		uFilter;
-	float 		fSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
-	uFilter = round( (float)lPosition / fSteps_per_Filter ); 
+	float 		fSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->iNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
+
+	// unwrap the current position around, in case we were taking a short-cut
+	while ( lPosition < 0 ) {
+		// unwind the position one full CCW revolution
+		lPosition += MICROSTEPS_PER_REVOLUTION;
+	}
+
+	while ( lPosition >= MICROSTEPS_PER_REVOLUTION ) {
+		// unwind the position one full CW revolution
+		lPosition -= MICROSTEPS_PER_REVOLUTION;
+	}
+
+	uFilter = floor( (float)lPosition / fSteps_per_Filter ); 
 
     // The position is 
     return uFilter;
@@ -290,7 +363,7 @@ uint8_t     Filter_Wheel_Motor_Class::Position_To_Filter( long lPosition ) {
 //------------------------------------------------------------
 long    Filter_Wheel_Motor_Class::Filter_To_Position( uint8_t filter ) {
 
-	float 		fSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
+	float 		fSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->iNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
 
     return( (long)( filter * fSteps_per_Filter ) ); 
  
@@ -318,7 +391,6 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	bool    bPosition_Sensor_Active;
 	bool    bFast_Search = true;
 	float   fSearch_Angle;
-	long	lSteps_per_Filter;
 
 	int16_t iPosition_Marker_Width;
 
@@ -326,8 +398,12 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 
 	FWM_DEBUG_MSG_LN( "FWM Home start" );
 
+	// Reset the sensor thresholds and IO pins
+	Init_Sensors();
+
 	// Init the motor state
 	g_State = FWM_STATE_HOMING;
+
 
 	result = FWM_RESULT_SUCCESS;
 	// ignore the state of the home flag, since we're going to look for home no matter what
@@ -341,10 +417,13 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	motor.setAcceleration( HOME_ACCELERATION );
 	motor.enableOutputs();
 
-
 	fSearch_Angle = 0;
+	//------------------------------------------------------------
 	// Step 1: Find a position sensor.
-	while ( ( !Is_Position_Sensor_Active() ) && ( fSearch_Angle <= ( FULL_WHEEL_ANGLE / this->uNum_Filters ) ) ) {
+	//------------------------------------------------------------
+
+	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+	while ( ( !bPosition_Sensor_Active ) && ( fSearch_Angle <= ( FULL_WHEEL_ANGLE / this->iNum_Filters ) ) ) {
 
 		motor.move( HOME_SEEK_STEP_SIZE_IN_STEPS );
 		motor.runToPosition();	   
@@ -354,29 +433,50 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	}
 
 	// exit if we didn't find the sensor
-	if ( !Is_Position_Sensor_Active() ) {
+	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+	if ( !bPosition_Sensor_Active ) {
 
 		FWM_DEBUG_MSG_LN( "Couldn't find position sensor reading" );
 		return FWM_RESULT_HOMING_FAILED;
 	}
 
 
+	//------------------------------------------------------------
 	// Step 2: Check all positions for the home sensor
+	//------------------------------------------------------------
+
+	// check all the positions for the home sensor
 	motor.setCurrentPosition( 0 );
 	fSearch_Angle = 0;
-	lSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION;
+	while ( fSearch_Angle <= FULL_WHEEL_ANGLE ) {
 
-	while ( ( !Is_Home_Sensor_Active() ) && ( fSearch_Angle <= FULL_WHEEL_ANGLE ) ) {
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
 
 		// Move one filter position
-		motor.move( lSteps_per_Filter );
+		motor.move( this->lSteps_per_Filter );
 		motor.runToPosition();
 
 		// update the filter angle we've searched
-		fSearch_Angle += ( FULL_WHEEL_ANGLE / this->uNum_Filters );
+		fSearch_Angle += ( FULL_WHEEL_ANGLE / this->iNum_Filters );
 	}
 
-	if ( Is_Home_Sensor_Active() ) {
+	// recheck all the positions for the home sensor
+	motor.setCurrentPosition( 0 );
+	fSearch_Angle = 0;
+	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+	while ( !bHome_Sensor_Active && ( fSearch_Angle <= FULL_WHEEL_ANGLE ) ) {
+
+		// Move one filter position
+		motor.move( this->lSteps_per_Filter );
+		motor.runToPosition();
+
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+
+		// update the filter angle we've searched
+		fSearch_Angle += ( FULL_WHEEL_ANGLE / this->iNum_Filters );
+	}
+
+	if ( bHome_Sensor_Active ) {
 		bHome = true;
 	} else {
 
@@ -392,7 +492,7 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	if ( bHome ) {
 
 		this->fCurrent_Angle = 0.0f;
-		this->uCurrent_Filter = 0;
+		this->iCurrent_Filter = 0;
 
 		// now find the width of the position mark in motor steps and position the wheel at the half-way point
 		FWM_DEBUG_MSG_LN( "Finding positon mark width." );
@@ -447,7 +547,7 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 
 	// energize coils - the motor will hold position
 	motor.enableOutputs();
-	motor.setCurrentPosition( 0 );
+	Set_Current_Position_As_Home();
 
 	motor.setMaxSpeed( NORMAL_SPEED );
 	motor.setAcceleration( NORMAL_ACCELERATION );
@@ -461,5 +561,9 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 }
 
 
+void	Filter_Wheel_Motor_Class::Set_Current_Position_As_Home( void ) {
+
+	motor.setCurrentPosition( 0 );
+}
 
 
