@@ -13,7 +13,7 @@
 #ifndef FILTER_WHEEL_MOTOR_H
 #define FILTER_WHEEL_MOTOR_H
 
-#include "BasicStepperDriver.h"
+#include "AccelStepper.h"
 #include "Pin_Definitions.h"
 
 
@@ -59,25 +59,23 @@
 //------------------------------------------------------------
 // Constants
 //------------------------------------------------------------
-#define	FILTER_WHEEL_SENSOR_SAMPLES			3
 
-#define SENSOR_HOME_THRESHOLD_DEFAULT   	160
-#define SENSOR_POSITION_THRESHOLD_DEFAULT   160
-#define SENSOR_ADAPTIVE_THRESHOLD_MAX_DISTANCE		200		// the global min/max have to be within this distance from the defaults to be considered valid
-#define SENSOR_ADAPTIVE_THRESHOLD_MIN_DISTANCE		40		// the global min/max have to be within this distance from the defaults to be considered valid
+#define FULL_WHEEL_ANGLE		  			360.0f
 
-#define HOME_SEARCH_SPEED_FAST  			100
-#define HOME_SEARCH_SPEED_SLOW  			10
 #define MOTOR_STEPS_PER_REVOLUTION  		200
 #define MICROSTEPS  						16
 #define MICROSTEPS_PER_REVOLUTION           ( MOTOR_STEPS_PER_REVOLUTION * MICROSTEPS )
 
-#define HOME_SEEK_STEP_SIZE_IN_STEPS  		2
+#define NORMAL_SPEED  						10000
+#define	NORMAL_ACCELERATION					10000
+#define	POSITION_SEEK_STEP_SIZE_IN_STEPS	( MICROSTEPS_PER_REVOLUTION / 360 )
+
+#define	HOME_ACCELERATION					1000
+#define HOME_SEARCH_SPEED_FAST  			1000
+#define HOME_SEARCH_SPEED_SLOW  			100
+#define HOME_SEEK_STEP_SIZE_IN_STEPS  		( MICROSTEPS_PER_REVOLUTION / 360 )
 //#define HOME_SEEK_STEP_SIZE_IN_DEG  		0.25f
 #define HOME_SEEK_STEP_SIZE_IN_DEG  		( 360.0f * HOME_SEEK_STEP_SIZE_IN_STEPS / ( MOTOR_STEPS_PER_REVOLUTION * MICROSTEPS ) )
-
-#define NORMAL_SPEED  						200
-#define	POSITION_SEEK_STEP_SIZE_IN_STEPS	2
 
 // Result codes
 typedef	enum eFWM_Result {
@@ -110,9 +108,6 @@ public:
 
 	tFWM_Result		Init( float fFull_Angle, uint8_t uNum_Filters );
 
-	// should be private.  Temporarily public for debugging of adaptive sensor reading
-	void        Read_Sensors( bool* bHome_Sensor_Active, bool* bPosition_Sensor_Active );
-
 	tFWM_Result	Find_Home( void );
 	bool		Is_Moving( void );
 	bool    	Service( void );
@@ -132,11 +127,8 @@ public:
 
 private:
 
-    uint8_t     Position_To_Filter( uint16_t position );
-    uint16_t    Filter_To_Position( uint8_t filter );
-
-	bool    	Is_Home_Sensor_Active( void );
-	bool    	Is_Position_Sensor_Active( void );
+    uint8_t     Position_To_Filter( long position );
+    long    Filter_To_Position( uint8_t filter );
 
 	// private member variables
 	float	fFull_Filter_Angle;

@@ -13,8 +13,8 @@
 #include "Arduino.h"
 #include "Pin_Definitions.h"
 #include "Filter_Wheel_Motor.h"
-//#include "BasicStepperDriver.h"
-#include "DRV8825.h"
+#include "AccelStepper.h"
+#include "IR_Sensor.h"
 
 //------------------------------------------------------------
 //	Constants
@@ -25,15 +25,7 @@
 //	Global Variables
 //------------------------------------------------------------
 
-//BasicStepperDriver motor( MOTOR_STEPS, PIN_MOTOR_DRIVER_DIR, PIN_MOTOR_DRIVER_STEP, PIN_MOTOR_DRIVER_ENABLE );
-//BasicStepperDriver motor( MOTOR_STEPS, PIN_MOTOR_DRIVER_DIR, PIN_MOTOR_DRIVER_STEP );
-DRV8825 motor( MOTOR_STEPS, PIN_MOTOR_DRIVER_DIR, PIN_MOTOR_DRIVER_STEP );
-
-// global min/max values for adaptively setting thresholds
-int16_t	g_Sensor_Home_Max;
-int16_t	g_Sensor_Home_Min;
-int16_t	g_Sensor_Position_Max;
-int16_t	g_Sensor_Position_Min;
+AccelStepper motor( AccelStepper::DRIVER, PIN_MOTOR_DRIVER_STEP, PIN_MOTOR_DRIVER_DIR );
 
 tFWM_State	g_State;
 
@@ -69,26 +61,15 @@ tFWM_Result    Filter_Wheel_Motor_Class::Init( float fFull_Angle, uint8_t uNum_F
 	g_State = FWM_STATE_STOPPED;
 
 	// Enable the motor
-	pinMode( PIN_MOTOR_DRIVER_ENABLE, OUTPUT );
-	digitalWrite( PIN_MOTOR_DRIVER_ENABLE, LOW );
+	motor.setEnablePin( PIN_MOTOR_DRIVER_ENABLE );
+	motor.setPinsInverted( false, false, true );
 
-	motor.begin( NORMAL_SPEED, MICROSTEPS );
-	motor.setEnableActiveState( LOW );
-	motor.setSpeedProfile( motor.LINEAR_SPEED, 1000, 1000 );
+	// set default parameters
+    motor.setMaxSpeed( NORMAL_SPEED );
+    motor.setAcceleration( NORMAL_ACCELERATION );
 
 	// energize coils - the motor will hold position
-	motor.enable();
-//	motor.rotate( 90 );
-
-	// prepare the sensors
-	pinMode( PIN_SENSOR_LED, OUTPUT );
-	digitalWrite( PIN_SENSOR_LED, LOW );
-
-	// set the global min/max values
-	g_Sensor_Home_Max = -32760;
-	g_Sensor_Home_Min = 32760;
-	g_Sensor_Position_Max = -32760;
-	g_Sensor_Position_Min = 32760;
+	motor.enableOutputs();
 
 	FWM_DEBUG_MSG_LN( "FWM Init done" );
 	return FWM_RESULT_SUCCESS;
@@ -96,7 +77,97 @@ tFWM_Result    Filter_Wheel_Motor_Class::Init( float fFull_Angle, uint8_t uNum_F
 
 
 /*------------------------------------------------------------
-|  Read_Sensors
+|  Set_Target_Filter
+|-------------------------------------------------------------
+|
+| PURPOSE:  Set the target filter wheel position
+|
+| DESCRIPTION:	If the target position is different from the current position,
+| 				The wheel starts moving.
+|
+| HISTORY:
+|
+------------------------------------------------------------*/
+tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( uint8_t uFilter ) {
+
+	tFWM_Result	result;
+
+	long	lTarget_Postion;
+	long	lSteps_per_Filter;
+
+	result = FWM_RESULT_SUCCESS;
+
+    // see if we're already moving to the requested filter position
+    if ( this->uTarget_Filter == uFilter ) {
+        return result;
+    }
+
+    // make sure the requested position is valid
+    if ( uFilter >= this->uNum_Filters ) {
+        return FWM_RESULT_INVALID_PARAMETER;
+    }
+
+    // save the new ( valid ) target filter
+    this->uTarget_Filter = uFilter;
+
+	//------------------------------------------------------------
+	//	Ensure we're homed
+	//------------------------------------------------------------
+
+	// first, make sure we know where home is...
+	if ( !this->bFound_Home ) {
+
+		result = Find_Home();
+
+		if ( result != FWM_RESULT_SUCCESS ) {
+			return result;
+		}
+
+		motor.setMaxSpeed( NORMAL_SPEED );
+		motor.setAcceleration( NORMAL_ACCELERATION );
+
+	}
+
+	//------------------------------------------------------------
+	//	Compute new position
+	//------------------------------------------------------------
+
+	FWM_DEBUG_MSG( "Current: " );
+	FWM_DEBUG_MSG_VAL( this->uCurrent_Filter, DEC );
+	FWM_DEBUG_MSG( ", Target: " );
+	FWM_DEBUG_MSG_VAL( this->uTarget_Filter, DEC );
+	FWM_DEBUG_MSG_LN( "" );
+
+	// Don't bother wrapping around or trying to optimize for the circular nature of the filter
+	// I.e. assume this is linear arrangement
+
+	// move to the desired position
+	lSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
+	lTarget_Postion = (float)(this->uTarget_Filter) * lSteps_per_Filter; 
+
+	FWM_DEBUG_MSG( "Target Steps: " );
+	FWM_DEBUG_MSG_VAL( lTarget_Postion, DEC );
+	FWM_DEBUG_MSG_LN( "" );
+
+	//------------------------------------------------------------
+	//	Start the move
+	//------------------------------------------------------------
+
+	// we're moving blindly, hoping to end up in the correct position
+	g_State = FWM_RESULT_BLIND_MOVING;
+
+	motor.setMaxSpeed( NORMAL_SPEED );
+
+	// start the moving
+	motor.moveTo( lTarget_Postion );
+
+	this->uCurrent_Filter = uFilter;
+
+	return result;
+}
+
+/*------------------------------------------------------------
+|  Get_Current_Filter
 |-------------------------------------------------------------
 |
 | PURPOSE:
@@ -106,142 +177,123 @@ tFWM_Result    Filter_Wheel_Motor_Class::Init( float fFull_Angle, uint8_t uNum_F
 | HISTORY:
 |
 ------------------------------------------------------------*/
-void    Filter_Wheel_Motor_Class::Read_Sensors( bool *bHome_Sensor_Active, bool *bPosition_Sensor_Active ) {
+uint8_t     Filter_Wheel_Motor_Class::Get_Current_Filter( void ) {
 
-	uint8_t		i;
+	return this->uCurrent_Filter;
+}
 
-	int16_t		iHome_Reading_Dark;
-	int16_t		iHome_Reading_Bright;
-	int16_t		iHome_Reading_Diff;
 
-	int16_t		iPosition_Reading_Dark;
-	int16_t		iPosition_Reading_Bright;
-	int16_t		iPosition_Reading_Diff;
+/*------------------------------------------------------------
+|  Service
+|-------------------------------------------------------------
+|
+| PURPOSE:
+|
+| DESCRIPTION:
+|
+| HISTORY:
+|
+------------------------------------------------------------*/
+bool    Filter_Wheel_Motor_Class::Service( void ) {
 
-	bool		bIs_Home_Sensor_Active;
-	bool		bIs_Position_Sensor_Active;
+	unsigned wait_time_micros;
 
-	int16_t		iHome_Threshold;
-	int16_t		iPosition_Threshold;
+	bool  bIs_Moving = false;
 
-	// reset the accumulators
-	iHome_Reading_Dark = 0;
-	iHome_Reading_Bright = 0;
-	iPosition_Reading_Dark = 0;
-	iPosition_Reading_Bright = 0;
+	// service the stepper motor
+	motor.run();
 
-	//------------------------------------------------------------
-	// Take readings with the LED on and off.  Use the difference to judge reflectance.  This removes temperature effects on output
-	// sample the sensors a number of times
-	//------------------------------------------------------------
-	for ( i = 0; i != FILTER_WHEEL_SENSOR_SAMPLES; i++ ) {
+	switch ( g_State ) {
 
-		// turn ON LED power
-		digitalWrite( PIN_SENSOR_LED, HIGH );
-		delay( 2 );
-		iHome_Reading_Bright += analogRead( PIN_SENSOR_HOME );
-		iPosition_Reading_Bright += analogRead( PIN_SENSOR_POSITION );
+		//------------------------------------------------------------
+		// If the motor is stopped, there's nothing to do.
+		//------------------------------------------------------------
+		case 	FWM_STATE_STOPPED:
+			break;
 
-		// turn off LED power
-		digitalWrite( PIN_SENSOR_LED, LOW );
-		delay( 2 );
-		iHome_Reading_Dark += analogRead( PIN_SENSOR_HOME );
-		iPosition_Reading_Dark += analogRead( PIN_SENSOR_POSITION );
+		//------------------------------------------------------------
+		//------------------------------------------------------------
+		case	FWM_STATE_HOMING:
+
+			// we should never get here, since homing is a blocking operation
+			break;
+
+		//------------------------------------------------------------
+		//	Move to where the filter ought to be.  Sometimes we're off because of slipage
+		//------------------------------------------------------------
+		case 	FWM_RESULT_BLIND_MOVING:
+
+			bIs_Moving = true;
+
+
+			if ( motor.distanceToGo() == 0 ) {
+
+				// the blind move has completed.  Now we need to verify that the position sensor is active.
+				g_State = FWM_RESULT_SEARCHING_FOR_NEXT_POSITION;
+			}
+
+			break;
+
+		//------------------------------------------------------------
+		//	Make sure we're in the final position by checking that the position sensor is active
+		//------------------------------------------------------------
+		case 	FWM_RESULT_SEARCHING_FOR_NEXT_POSITION:
+
+#if 0			
+			if ( Is_Position_Sensor_Active() ) {
+
+				// the position sensor is active; we're done.  
+				bIs_Moving = false;
+
+				// update the motor position, since we may not be where we think we are
+
+			} else {
+
+				// move the wheel a little
+				motor.move( POSITION_SEEK_STEP_SIZE_IN_STEPS );
+
+				bIs_Moving = true;
+
+			}
+#else
+			bIs_Moving = false;
+			g_State = FWM_STATE_STOPPED;
+#endif
+			break;
+
 	}
 
-	//------------------------------------------------------------
-	// Compute the differences and scale the reading accumulators to compute the average
-	//------------------------------------------------------------
-	
-	// Note that dark readings are higher than bright readings.  LED light causes the phototransistor to pull down
-	iHome_Reading_Diff = ( iHome_Reading_Dark - iHome_Reading_Bright ) / FILTER_WHEEL_SENSOR_SAMPLES;
-	iPosition_Reading_Diff = ( iPosition_Reading_Dark - iPosition_Reading_Bright ) / FILTER_WHEEL_SENSOR_SAMPLES;
+	return  bIs_Moving;
+}
 
-	// update the global min/max
-	g_Sensor_Home_Max = ( iHome_Reading_Diff > g_Sensor_Home_Max ) ? iHome_Reading_Diff : g_Sensor_Home_Max;
-	g_Sensor_Home_Min = ( iHome_Reading_Diff < g_Sensor_Home_Min ) ? iHome_Reading_Diff : g_Sensor_Home_Min;
-	g_Sensor_Position_Max = ( iPosition_Reading_Diff > g_Sensor_Position_Max ) ? iPosition_Reading_Diff : g_Sensor_Position_Max;
-	g_Sensor_Position_Min = ( iPosition_Reading_Diff < g_Sensor_Position_Min ) ? iPosition_Reading_Diff : g_Sensor_Position_Min;
 
-	//------------------------------------------------------------
-	// Compute thresholds
-	//------------------------------------------------------------
-	iHome_Threshold = ( g_Sensor_Home_Max + g_Sensor_Home_Min ) / 2;
-	iPosition_Threshold = ( g_Sensor_Position_Max + g_Sensor_Position_Min ) / 2;
+//------------------------------------------------------------
+//	Position_To_Filter
+// 
+//  Convert microsteps to a filter position.  Round to the nearest filter
+//------------------------------------------------------------
+uint8_t     Filter_Wheel_Motor_Class::Position_To_Filter( long lPosition ) {
 
-	// if the min or max HOME sensor readings are too wide or too narrow, then the sensor should be marked inactive
-	if ( ( g_Sensor_Home_Max > ( SENSOR_ADAPTIVE_THRESHOLD_MAX_DISTANCE + SENSOR_HOME_THRESHOLD_DEFAULT ) ) ||
-		( ( g_Sensor_Home_Max - g_Sensor_Home_Min ) < SENSOR_ADAPTIVE_THRESHOLD_MIN_DISTANCE ) ||
-		( g_Sensor_Home_Min < ( SENSOR_ADAPTIVE_THRESHOLD_MIN_DISTANCE - SENSOR_HOME_THRESHOLD_DEFAULT ) ) ) {
+    uint8_t		uFilter;
+	float 		fSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
+	uFilter = round( (float)lPosition / fSteps_per_Filter ); 
 
-		bIs_Home_Sensor_Active = false;
+    // The position is 
+    return uFilter;
+}
 
-	} else {
 
-		// Decide which if home sensor is active
-		bIs_Home_Sensor_Active = ( iHome_Reading_Diff > iHome_Threshold );
-	}
+//------------------------------------------------------------
+//	Filter_To_Position
+// 
+//  Convert the filter number to a number of motor microsteps
+//------------------------------------------------------------
+long    Filter_Wheel_Motor_Class::Filter_To_Position( uint8_t filter ) {
 
-	// if the min or max POSITION sensor readings are too wide or too narrow, then the sensor should be marked inactive
-	if ( ( g_Sensor_Position_Max > ( SENSOR_ADAPTIVE_THRESHOLD_MAX_DISTANCE + SENSOR_POSITION_THRESHOLD_DEFAULT ) ) ||
-		( ( g_Sensor_Position_Max - g_Sensor_Position_Min ) < SENSOR_ADAPTIVE_THRESHOLD_MIN_DISTANCE ) ||
-		( g_Sensor_Position_Min < ( SENSOR_ADAPTIVE_THRESHOLD_MIN_DISTANCE - SENSOR_POSITION_THRESHOLD_DEFAULT ) ) ) {
+	float 		fSteps_per_Filter = ( ( FULL_WHEEL_ANGLE / 360.0f ) / this->uNum_Filters ) * MICROSTEPS * MOTOR_STEPS_PER_REVOLUTION ;
 
-		bIs_Position_Sensor_Active = false;
-
-	} else {
-
-		// Decide which if position sensor is active
-		bIs_Position_Sensor_Active = ( iPosition_Reading_Diff > iPosition_Threshold );
-	}
-
-	//------------------------------------------------------------
-	//	Report state states
-	//------------------------------------------------------------
-
-	// read the home sensor
-	if ( bHome_Sensor_Active != NULL ) {
-
-		*bHome_Sensor_Active = bIs_Home_Sensor_Active;
-	}
-
-	// read the position sensor
-	if ( bPosition_Sensor_Active != NULL ) {
-
-		*bPosition_Sensor_Active = bIs_Position_Sensor_Active;
-	}
-
-	//------------------------------------------------------------
-	// report HOME sensor stats
-	//------------------------------------------------------------
-	FWM_DEBUG_MSG( "HOME: Min:" );
-	FWM_DEBUG_MSG_VAL( g_Sensor_Home_Min, DEC );
-	FWM_DEBUG_MSG( ", Max: " );
-	FWM_DEBUG_MSG_VAL( g_Sensor_Home_Max, DEC );
-	FWM_DEBUG_MSG( ", Thr: " );
-	FWM_DEBUG_MSG_VAL( iHome_Threshold, DEC );
-	FWM_DEBUG_MSG( ", Cur:" );
-	FWM_DEBUG_MSG_VAL( iHome_Reading_Diff, DEC );
-	FWM_DEBUG_MSG( ", Active:" );
-	FWM_DEBUG_MSG_VAL( bIs_Home_Sensor_Active, DEC );
-//	FWM_DEBUG_MSG_LN( "" );
-
-	// report POSITION sensor stats
-	FWM_DEBUG_MSG( ", POSITION: Min:" );
-	FWM_DEBUG_MSG_VAL( g_Sensor_Position_Min, DEC );
-	FWM_DEBUG_MSG( ", Max: " );
-	FWM_DEBUG_MSG_VAL( g_Sensor_Position_Max, DEC );
-	FWM_DEBUG_MSG( ", Thr: " );
-	FWM_DEBUG_MSG_VAL( iPosition_Threshold, DEC );
-	FWM_DEBUG_MSG( ", Cur:" );
-	FWM_DEBUG_MSG_VAL( iPosition_Reading_Diff, DEC );
-	FWM_DEBUG_MSG( ", Active:" );
-	FWM_DEBUG_MSG_VAL( bIs_Position_Sensor_Active, DEC );
-	FWM_DEBUG_MSG_LN( "" );
-
-	// turn off LED power.  Redundant, but safe
-	digitalWrite( PIN_SENSOR_LED, LOW );
-
+    return( (long)( filter * fSteps_per_Filter ) ); 
+ 
 }
 
 
@@ -282,8 +334,9 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	//------------------------------------------------------------
 
 	// start moving quickly
-	motor.setRPM( HOME_SEARCH_SPEED_FAST );
-	motor.enable();
+	motor.setMaxSpeed( HOME_SEARCH_SPEED_FAST );
+	motor.setAcceleration( HOME_ACCELERATION );
+	motor.enableOutputs();
 
 	while ( !bHome && !bGone_Too_Far ) {
 
@@ -311,7 +364,7 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 			// if the home sensor is active, but the position sensor isn't, we're close.  Slow down
 			if ( bHome_Sensor_Active && bFast_Search ) {
 
-				motor.setRPM( HOME_SEARCH_SPEED_SLOW );
+				motor.setMaxSpeed( HOME_SEARCH_SPEED_SLOW );
 				bFast_Search = false;
 			}
 
@@ -319,6 +372,7 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 //			FWM_DEBUG_MSG_LN( "Moving a little..." );
 //			motor.rotate( HOME_SEEK_STEP_SIZE_IN_DEG );
 			motor.move( HOME_SEEK_STEP_SIZE_IN_STEPS );
+			motor.runToPosition();
 
 			// check if we're searched the entire circle
 			fSearch_Angle += HOME_SEEK_STEP_SIZE_IN_DEG;
@@ -340,6 +394,7 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	//	Home found.  Now measure the width of the sensor mark and center the wheel on it
 	//------------------------------------------------------------
 	if ( bHome ) {
+
 		this->fCurrent_Angle = 0.0f;
 		this->uCurrent_Filter = 0;
 
@@ -350,10 +405,15 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 		do {
 			FWM_DEBUG_MSG_LN( "Waiting for position sensor to be active" );
 			Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+
 			if ( !bPosition_Sensor_Active ) {
 				motor.move( 1 );
+				motor.runToPosition();
 			}
+
 		} while ( !bPosition_Sensor_Active );
+
+
 		FWM_DEBUG_MSG_LN( "Position sensor is active" );
 
 		// then wait for it to be inactive
@@ -361,11 +421,15 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 		do {
 			FWM_DEBUG_MSG_LN( "Waiting for position sensor to be inactive" );
 			Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+
 			if ( bPosition_Sensor_Active ) {
 				iPosition_Marker_Width++;
 				motor.move( 1 );
+				motor.runToPosition();
 			}
+
 		} while ( bPosition_Sensor_Active );
+
 		FWM_DEBUG_MSG_LN( "Position sensor is inactive" );
 
 		FWM_DEBUG_MSG( "Position mark is " );
@@ -374,6 +438,8 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 
 		iPosition_Marker_Width = -( iPosition_Marker_Width / 2 );
 		motor.move( iPosition_Marker_Width );
+		motor.runToPosition();
+
 		FWM_DEBUG_MSG( "Moved back " );
 		FWM_DEBUG_MSG_VAL( iPosition_Marker_Width, DEC );
 		FWM_DEBUG_MSG_LN( " steps." );
@@ -384,9 +450,8 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	//------------------------------------------------------------
 
 	// energize coils - the motor will hold position
-//  motor.enable();
-
-	motor.setRPM( NORMAL_SPEED );
+	motor.enableOutputs();
+	motor.setCurrentPosition( 0 );
 
 	FWM_DEBUG_MSG_LN( "FWM Home done" );
 
@@ -398,297 +463,4 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 
 
 
-/*------------------------------------------------------------
-|  Set_Target_Filter
-|-------------------------------------------------------------
-|
-| PURPOSE:  Set the target filter wheel position
-|
-| DESCRIPTION:	If the target position is different from the current position,
-| 				The wheel starts moving.
-|
-| HISTORY:
-|
-------------------------------------------------------------*/
-tFWM_Result     Filter_Wheel_Motor_Class::Set_Target_Filter( uint8_t uFilter ) {
 
-	tFWM_Result result;
-	int8_t      iFilter_Positions_To_Move_Pos;
-	int8_t      iFilter_Positions_To_Move_Neg;
-	int8_t      iFilter_Positions_To_Move;
-
-	float  fAngle_to_Move;
-	long  iFilter_Positions_To_Move;
-
-
-	result = FWM_RESULT_SUCCESS;
-
-    // see if we're already moving to the requested filter position
-    if ( this->uTarget_Filter == uFilter ) {
-        return result;
-    }
-
-    // make sure the requested position is valid
-    if ( uFilter >= this->uNum_Filters ) {
-        return FWM_RESULT_INVALID_PARAMETER;
-    }
-
-    // save the new ( valid ) target filter
-    this->uTarget_Filter = uFilter;
-
-	//------------------------------------------------------------
-	//	Ensure we're homed
-	//------------------------------------------------------------
-
-	// first, make sure we know where home is...
-	if ( !this->bFound_Home ) {
-
-		result = Find_Home();
-
-		if ( result != FWM_RESULT_SUCCESS ) {
-			return result;
-		}
-	}
-
-	//------------------------------------------------------------
-	//	Compute move speed and direction
-	//------------------------------------------------------------
-
-	// figure out how many filters and which direction to move
-	iFilter_Positions_To_Move = this->uTarget_Filter - this->uCurrent_Filter;
-
-	FWM_DEBUG_MSG( "Current: " );
-	FWM_DEBUG_MSG_VAL( this->uCurrent_Filter, DEC );
-	FWM_DEBUG_MSG( ", Target: " );
-	FWM_DEBUG_MSG_VAL( this->uTarget_Filter, DEC );
-	FWM_DEBUG_MSG_LN( "" );
-
-	// wrap around if the requested filter is more than a half-circle from the current position
-	if ( this->fFull_Filter_Angle == 360.0f ) {
-
-		// chose whichever is shorter
-
-		if ( abs( iFilter_Positions_To_Move ) > ( this->uNum_Filters / 2 ) ) {
-
-			FWM_DEBUG_MSG_LN( "Wrapping around" );
-//			iFilter_Positions_To_Move = uFilter - this->uNum_Filters;
-			if ( iFilter_Positions_To_Move > 0 ) {
-				iFilter_Positions_To_Move = iFilter_Positions_To_Move - this->uNum_Filters;
-			} else {
-				iFilter_Positions_To_Move = iFilter_Positions_To_Move + this->uNum_Filters;
-			}
-		}
-	}
-
-	FWM_DEBUG_MSG( "Going to move " );
-	FWM_DEBUG_MSG_VAL( iFilter_Positions_To_Move, DEC );
-
-	// get the number of steps remaining so we can update
-	iFilter_Positions_To_Move = motor.getDirection() * motor.getStepsRemaining();
-
-	// move to the desired position
-	fAngle_to_Move += iFilter_Positions_To_Move * ( this->fFull_Filter_Angle / this->uNum_Filters );
-	FWM_DEBUG_MSG( ", Angle: " );
-	FWM_DEBUG_MSG_VAL( fAngle_to_Move, DEC );
-	FWM_DEBUG_MSG_LN( "" );
-
-	iFilter_Positions_To_Move += ( fAngle_to_Move / 360.0f ) * MICROSTEPS * MOTOR_STEPS;
-
-
-	//------------------------------------------------------------
-	//	Start the move
-	//------------------------------------------------------------
-
-	// we're moving blindly, hoping to end up in the correct position
-	g_State = FWM_RESULT_BLIND_MOVING;
-
-	motor.setRPM( NORMAL_SPEED );
-
-	// start the moving
-	motor.startMove( iFilter_Positions_To_Move );
-
-	this->uCurrent_Filter = uFilter;
-
-	return result;
-}
-
-/*------------------------------------------------------------
-|  Get_Current_Filter
-|-------------------------------------------------------------
-|
-| PURPOSE:
-|
-| DESCRIPTION:
-|
-| HISTORY:
-|
-------------------------------------------------------------*/
-uint8_t     Filter_Wheel_Motor_Class::Get_Current_Filter( void ) {
-
-	return this->uCurrent_Filter;
-
-}
-
-
-/*------------------------------------------------------------
-|  Service
-|-------------------------------------------------------------
-|
-| PURPOSE:
-|
-| DESCRIPTION:
-|
-| HISTORY:
-|
-------------------------------------------------------------*/
-bool    Filter_Wheel_Motor_Class::Service( void ) {
-
-	unsigned wait_time_micros;
-
-	bool  bIs_Moving = false;
-
-
-	switch ( g_State ) {
-
-		//------------------------------------------------------------
-		// If the motor is stopped, there's nothing to do.
-		//------------------------------------------------------------
-		case 	FWM_STATE_STOPPED:
-			break;
-
-		//------------------------------------------------------------
-		//------------------------------------------------------------
-		case	FWM_STATE_HOMING:
-
-			// we should never get here, since homing is a blocking operation
-			break;
-
-		//------------------------------------------------------------
-		//	Move to where the filter ought to be.  Sometimes we're off because of slipage
-		//------------------------------------------------------------
-		case 	FWM_RESULT_BLIND_MOVING:
-
-			bIs_Moving = true;
-
-			// we're moving to the next position without checking the position sensors.
-			// motor control loop - send pulse and return how long to wait until next pulse
-			wait_time_micros = motor.nextAction();
-
-			if ( wait_time_micros == 0 ) {
-
-				// the blind move has completed.  Now we need to verify that the position sensor is active.
-				g_State = FWM_RESULT_SEARCHING_FOR_NEXT_POSITION;
-			}
-
-#if 0    // 0 wait time indicates the motor has stopped
-			// ( optional ) execute other code if we have enough time
-			if ( wait_time_micros > 100 ) {
-				// other code here
-			}
-#endif
-			break;
-
-		//------------------------------------------------------------
-		//	Make sure we're in the final position by checking that the position sensor is active
-		//------------------------------------------------------------
-		case 	FWM_RESULT_SEARCHING_FOR_NEXT_POSITION:
-
-			if ( Is_Position_Sensor_Active() ) {
-
-				// the position sensor is active; we're done.  
-				bIs_Moving = false;
-
-				// update the motor position, since we may not be where we think we are
-
-			} else {
-
-				// move the wheel a little
-				motor.move( POSITION_SEEK_STEP_SIZE_IN_STEPS );
-
-				bIs_Moving = true;
-
-			}
-			break;
-
-	}
-
-	return  bIs_Moving;
-}
-
-
-//------------------------------------------------------------
-//	Position_To_Filter
-// 
-//  Convert microsteps to a filter position.  Round to the nearest filter
-//------------------------------------------------------------
-uint8_t     Filter_Wheel_Motor_Class::Position_To_Filter( uint16_t position ) {
-
-    float       fFilter;
-    uint16_t    uDegrees_per_Filter = ( this->fFull_Filter_Angle / this->uNum_Filters );
-    uint16_t    uSteps_per_Filter = ( MICROSTEPS_PER_REVOLUTION / uDegrees_per_Filter );
-
-    fFilter = (float)position;
-
-    // The position is 
-    return position * ( this->fFull_Filter_Angle / this->uNum_Filters )
-}
-
-
-//------------------------------------------------------------
-//	Filter_To_Position
-// 
-//  Convert the filter number to a number of motor microsteps
-//------------------------------------------------------------
-uint16_t    Filter_Wheel_Motor_Class::Filter_To_Position( uint8_t filter ) {
-
-    uint16_t    uDegrees_per_Filter = ( this->fFull_Filter_Angle / this->uNum_Filters );
-    uint16_t    uSteps_per_Rotation;
-
-    uint16_t    uSteps_per_Filter;
-
-    uSteps_per_Rotation = MICROSTEPS_PER_REVOLUTION;
-    uSteps_per_Filter = ( uSteps_per_Rotation / uDegrees_per_Filter );
-    return( filter * uSteps_per_Filter ); 
-
-}
-
-/*------------------------------------------------------------
-|  Is_Home_Sensor_Active
-|-------------------------------------------------------------
-|
-| PURPOSE:
-|
-| DESCRIPTION:
-|
-| HISTORY:
-|
-------------------------------------------------------------*/
-bool    Filter_Wheel_Motor_Class::Is_Home_Sensor_Active( void ) {
-
-	bool    bActive;
-
-	Read_Sensors( &bActive, NULL );
-
-	return  bActive;
-}
-
-
-/*------------------------------------------------------------
-|  Is_Position_Sensor_Active
-|-------------------------------------------------------------
-|
-| PURPOSE:
-|
-| DESCRIPTION:
-|
-| HISTORY:
-|
-------------------------------------------------------------*/
-bool    Filter_Wheel_Motor_Class::Is_Position_Sensor_Active( void ) {
-
-	bool    bActive;
-
-	Read_Sensors( NULL, &bActive );
-
-	return  bActive;
-}

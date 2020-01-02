@@ -31,6 +31,7 @@
 //#include "Parser.h"
 #include "Pin_Definitions.h"
 #include "Filter_Wheel_Motor.h"
+#include "IR_Sensor.h"
 
 
 #include <Wire.h>
@@ -149,6 +150,17 @@ void    setup() {
         IMA_DEBUG_MSG_LN( "Warning: SSD1306 allocation error" );
     }
 
+
+	//---------------------------------------------
+	// Prepare IR sensors
+	//---------------------------------------------
+	Init_Sensors();
+
+	while ( 0 ) {
+
+		Read_Sensors( NULL, NULL );
+	}
+
     //---------------------------------------------
     // prepare the motor
     //---------------------------------------------
@@ -171,6 +183,7 @@ void    setup() {
 
 
     IMA_DEBUG_MSG_LN( "FWC motor home done" );
+
 
     //---------------------------------------------
     // Set the position variables
@@ -260,7 +273,7 @@ void    loop() {
     if ( Serial.available() > 0 ) {
         ASCOMcmd = Serial.readStringUntil( '#' );  // Terminator so arduino knows when the message ends
         if ( ASCOMcmd == "GETFILTER" ) {
-            Serial.print( iLast_Position );
+            Serial.print( iLast_Reported_Position );
             Serial.println( "#" );  // Similarly, so ASCOM knows
 
         } else if ( ASCOMcmd == "FILTER0" ) {
@@ -308,10 +321,7 @@ void    loop() {
     //---------------------------------------------
     //  Report position changes
     //---------------------------------------------
-    iCurrent_Position = filter_wheel_controller.Get_Current_Filter( iTarget_Position );
-
-    // set the encoder to the current position
-    encoder.setPosition( iCurrent_Position );
+    iCurrent_Position = filter_wheel_controller.Get_Current_Filter();
 
     // report the current position to the host PC and display
     if ( iLast_Reported_Position != iCurrent_Position) {
@@ -323,7 +333,10 @@ void    loop() {
         // Update the display 
         bUpdate_Display = true;
 
-        // remember what the last reported position was
+		// set the encoder to the current position
+		encoder.setPosition( iCurrent_Position );
+	
+		// remember what the last reported position was
         iLast_Reported_Position = iCurrent_Position;
     }
 
