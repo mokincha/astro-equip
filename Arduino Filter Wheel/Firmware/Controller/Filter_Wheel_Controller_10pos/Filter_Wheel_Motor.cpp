@@ -404,7 +404,6 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	// Init the motor state
 	g_State = FWM_STATE_HOMING;
 
-
 	result = FWM_RESULT_SUCCESS;
 	// ignore the state of the home flag, since we're going to look for home no matter what
 
@@ -428,12 +427,13 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 		motor.move( HOME_SEEK_STEP_SIZE_IN_STEPS );
 		motor.runToPosition();	   
 
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+
 		// check if we're searched the entire circle
 		fSearch_Angle += HOME_SEEK_STEP_SIZE_IN_DEG;
 	}
 
 	// exit if we didn't find the sensor
-	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
 	if ( !bPosition_Sensor_Active ) {
 
 		FWM_DEBUG_MSG_LN( "Couldn't find position sensor reading" );

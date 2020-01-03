@@ -161,15 +161,15 @@ void    Read_Sensors( bool *bHome_Sensor_Active, bool *bPosition_Sensor_Active )
 	}
 
 #if 0
-	IRS_DEBUG_MSG( "HOME: Br:" );
-	IRS_DEBUG_MSG_VAL( iHome_Reading_Bright, DEC );
-	IRS_DEBUG_MSG( ", dk:" );
-	IRS_DEBUG_MSG_VAL( iHome_Reading_Dark, DEC );
-	IRS_DEBUG_MSG( ", POS: Br:" );
-	IRS_DEBUG_MSG_VAL( iPosition_Reading_Bright, DEC );
-	IRS_DEBUG_MSG( ", dk:" );
-	IRS_DEBUG_MSG_VAL( iPosition_Reading_Dark, DEC );
-	IRS_DEBUG_MSG_LN( "" );
+	IRS_MSG( "HOME: Br:" );
+	IRS_MSG_VAL( iHome_Reading_Bright, DEC );
+	IRS_MSG( ", dk:" );
+	IRS_MSG_VAL( iHome_Reading_Dark, DEC );
+	IRS_MSG( ", POS: Br:" );
+	IRS_MSG_VAL( iPosition_Reading_Bright, DEC );
+	IRS_MSG( ", dk:" );
+	IRS_MSG_VAL( iPosition_Reading_Dark, DEC );
+	IRS_MSG_LN( "" );
 #endif
 
 	//------------------------------------------------------------
@@ -193,8 +193,8 @@ void    Read_Sensors( bool *bHome_Sensor_Active, bool *bPosition_Sensor_Active )
 	iPosition_Threshold = ( (float)( g_Sensor_Position_Diff_Max - g_Sensor_Position_Diff_Min ) * IRS_POSITION_THRESHOLD_FACTOR ) + g_Sensor_Position_Diff_Min;
 
 	// if the min or max HOME sensor readings are too wide or too narrow, then the sensor should be marked inactive
-	if ( ( g_Sensor_Home_Diff_Max > SENSOR_HOME_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
-		( g_Sensor_Home_Diff_Min < SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
+	if ( ( g_Sensor_Home_Diff_Max < SENSOR_HOME_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
+		( g_Sensor_Home_Diff_Min > SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
 
 		bIs_Home_Sensor_Active = false;
 //		IRS_MSG_LN( "Home not ready" );
@@ -223,14 +223,14 @@ void    Read_Sensors( bool *bHome_Sensor_Active, bool *bPosition_Sensor_Active )
 	IRS_MSG_VAL( iHome_Reading_Diff, DEC );
 	IRS_MSG( ", Active:" );
 	IRS_MSG_VAL( bIs_Home_Sensor_Active, DEC );
-	IRS_MSG_LN( "" );
+//	IRS_MSG_LN( "" );
 #endif
 
 	}
 
 	// if the min or max POSITION sensor readings are too wide or too narrow, then the sensor should be marked inactive
-	if ( ( g_Sensor_Position_Diff_Max > SENSOR_POSITION_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
-		( g_Sensor_Position_Diff_Min < SENSOR_POSITION_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
+	if ( ( g_Sensor_Position_Diff_Max < SENSOR_POSITION_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
+		( g_Sensor_Position_Diff_Min > SENSOR_POSITION_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
 
 		bIs_Position_Sensor_Active = false;
 
@@ -256,34 +256,36 @@ void    Read_Sensors( bool *bHome_Sensor_Active, bool *bPosition_Sensor_Active )
 		*bPosition_Sensor_Active = bIs_Position_Sensor_Active;
 	}
 
-#if 1
+#if 0
 	//------------------------------------------------------------
 	// report HOME sensor stats
 	//------------------------------------------------------------
-	IRS_DEBUG_MSG( "HOME: Min:" );
-	IRS_DEBUG_MSG_VAL( g_Sensor_Home_Diff_Min, DEC );
-	IRS_DEBUG_MSG( ", Max: " );
-	IRS_DEBUG_MSG_VAL( g_Sensor_Home_Diff_Max, DEC );
-	IRS_DEBUG_MSG( ", Thr: " );
-	IRS_DEBUG_MSG_VAL( iHome_Threshold, DEC );
-	IRS_DEBUG_MSG( ", Cur:" );
-	IRS_DEBUG_MSG_VAL( iHome_Reading_Diff, DEC );
-	IRS_DEBUG_MSG( ", Active:" );
-	IRS_DEBUG_MSG_VAL( bIs_Home_Sensor_Active, DEC );
-//	IRS_DEBUG_MSG_LN( "" );
+	IRS_MSG( "HOME: Min:" );
+	IRS_MSG_VAL( g_Sensor_Home_Diff_Min, DEC );
+	IRS_MSG( ", Max: " );
+	IRS_MSG_VAL( g_Sensor_Home_Diff_Max, DEC );
+	IRS_MSG( ", Thr: " );
+	IRS_MSG_VAL( iHome_Threshold, DEC );
+	IRS_MSG( ", Cur:" );
+	IRS_MSG_VAL( iHome_Reading_Diff, DEC );
+	IRS_MSG( ", Active:" );
+	IRS_MSG_VAL( bIs_Home_Sensor_Active, DEC );
+//	IRS_MSG_LN( "" );
+#endif
 
+#if 0
 	// report POSITION sensor stats
-	IRS_DEBUG_MSG( ", POSITION: Min:" );
-	IRS_DEBUG_MSG_VAL( g_Sensor_Position_Diff_Min, DEC );
-	IRS_DEBUG_MSG( ", Max: " );
-	IRS_DEBUG_MSG_VAL( g_Sensor_Position_Diff_Max, DEC );
-	IRS_DEBUG_MSG( ", Thr: " );
-	IRS_DEBUG_MSG_VAL( iPosition_Threshold, DEC );
-	IRS_DEBUG_MSG( ", Cur:" );
-	IRS_DEBUG_MSG_VAL( iPosition_Reading_Diff, DEC );
-	IRS_DEBUG_MSG( ", Active:" );
-	IRS_DEBUG_MSG_VAL( bIs_Position_Sensor_Active, DEC );
-	IRS_DEBUG_MSG_LN( "" );
+	IRS_MSG( ", POSITION: Min:" );
+	IRS_MSG_VAL( g_Sensor_Position_Diff_Min, DEC );
+	IRS_MSG( ", Max: " );
+	IRS_MSG_VAL( g_Sensor_Position_Diff_Max, DEC );
+	IRS_MSG( ", Thr: " );
+	IRS_MSG_VAL( iPosition_Threshold, DEC );
+	IRS_MSG( ", Cur:" );
+	IRS_MSG_VAL( iPosition_Reading_Diff, DEC );
+	IRS_MSG( ", Active:" );
+	IRS_MSG_VAL( bIs_Position_Sensor_Active, DEC );
+	IRS_MSG_LN( "" );
 #endif
 
 	// turn off LED power.  Redundant, but safe
@@ -293,7 +295,7 @@ void    Read_Sensors( bool *bHome_Sensor_Active, bool *bPosition_Sensor_Active )
 
 
 /*------------------------------------------------------------
-|  Read_Sensors
+|  Read_Sensors_Debug
 |-------------------------------------------------------------
 |
 | PURPOSE:
@@ -377,8 +379,8 @@ void    Read_Sensors_Debug( void ) {
 	iPosition_Threshold = ( (float)( g_Sensor_Position_Diff_Max - g_Sensor_Position_Diff_Min ) * IRS_POSITION_THRESHOLD_FACTOR ) + g_Sensor_Position_Diff_Min;
 
 	// if the min or max HOME sensor readings are too wide or too narrow, then the sensor should be marked inactive
-	if ( ( g_Sensor_Home_Diff_Max > SENSOR_HOME_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
-		( g_Sensor_Home_Diff_Min < SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
+	if ( ( g_Sensor_Home_Diff_Max < SENSOR_HOME_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
+		( g_Sensor_Home_Diff_Min > SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
 
 		bIs_Home_Sensor_Active = false;
 //		IRS_MSG_LN( "Home not ready" );
@@ -391,8 +393,8 @@ void    Read_Sensors_Debug( void ) {
 	}
 
 	// if the min or max POSITION sensor readings are too wide or too narrow, then the sensor should be marked inactive
-	if ( ( g_Sensor_Position_Diff_Max > SENSOR_POSITION_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
-		( g_Sensor_Position_Diff_Min < SENSOR_POSITION_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
+	if ( ( g_Sensor_Position_Diff_Max < SENSOR_POSITION_ADAPTIVE_THRESHOLD_MAX_DIFF ) ||
+		( g_Sensor_Position_Diff_Min > SENSOR_POSITION_ADAPTIVE_THRESHOLD_MIN_DIFF ) ) {
 
 		bIs_Position_Sensor_Active = false;
 
