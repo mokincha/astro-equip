@@ -416,24 +416,38 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	motor.setAcceleration( HOME_ACCELERATION );
 	motor.enableOutputs();
 
-	fSearch_Angle = 0;
+	//------------------------------------------------------------
+	// Step 0: Move "backwards" a little, in case we're already home.
+	// This allows the sensors to take a dark reading or two before 
+	// almost immediately finding the homw and position sensors.
+	//------------------------------------------------------------
+	motor.move( -8.0f * HOME_SEEK_STEP_SIZE_IN_STEPS );
+	motor.runToPosition();	   
+
+
 	//------------------------------------------------------------
 	// Step 1: Find a position sensor.
+	// Search one full filter position for the position sensor mark
 	//------------------------------------------------------------
+	fSearch_Angle = 0;
 
-	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
-	while ( ( !bPosition_Sensor_Active ) && ( fSearch_Angle <= ( FULL_WHEEL_ANGLE / this->iNum_Filters ) ) ) {
+	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );		// take initial reading
 
+	// we need to search more than one filter angle because of the back-off in Step 0
+	while ( ( !bPosition_Sensor_Active ) && ( fSearch_Angle <= ( 1.25f * FULL_WHEEL_ANGLE / this->iNum_Filters ) ) ) {
+
+		// position sensor not found.  Move a little
 		motor.move( HOME_SEEK_STEP_SIZE_IN_STEPS );
 		motor.runToPosition();	   
 
-		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
-
-		// check if we're searched the entire circle
+		// update the search angle
 		fSearch_Angle += HOME_SEEK_STEP_SIZE_IN_DEG;
+
+		// check the sensors again
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
 	}
 
-	// exit if we didn't find the sensor
+	// Exit with error if we didn't find the sensor
 	if ( !bPosition_Sensor_Active ) {
 
 		FWM_DEBUG_MSG_LN( "Couldn't find position sensor reading" );
@@ -443,26 +457,11 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 
 	//------------------------------------------------------------
 	// Step 2: Check all positions for the home sensor
+	// At this point the wheel should been aligned with the sensor mark.  
+	// WE just need to search the filter positions for the home sensor.
 	//------------------------------------------------------------
+	fSearch_Angle = 0;		// reset the search angle
 
-	// check all the positions for the home sensor
-	motor.setCurrentPosition( 0 );
-	fSearch_Angle = 0;
-	while ( fSearch_Angle <= FULL_WHEEL_ANGLE ) {
-
-		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
-
-		// Move one filter position
-		motor.move( this->lSteps_per_Filter );
-		motor.runToPosition();
-
-		// update the filter angle we've searched
-		fSearch_Angle += ( FULL_WHEEL_ANGLE / this->iNum_Filters );
-	}
-
-	// recheck all the positions for the home sensor
-	motor.setCurrentPosition( 0 );
-	fSearch_Angle = 0;
 	Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
 	while ( !bHome_Sensor_Active && ( fSearch_Angle <= FULL_WHEEL_ANGLE ) ) {
 
@@ -470,10 +469,12 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 		motor.move( this->lSteps_per_Filter );
 		motor.runToPosition();
 
-		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
-
 		// update the filter angle we've searched
 		fSearch_Angle += ( FULL_WHEEL_ANGLE / this->iNum_Filters );
+
+		// read the sensor
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+
 	}
 
 	if ( bHome_Sensor_Active ) {
@@ -487,68 +488,67 @@ tFWM_Result    Filter_Wheel_Motor_Class::Find_Home( void ) {
 	this->bFound_Home = bHome;
 
 	//------------------------------------------------------------
-	//	Home found.  Now measure the width of the sensor mark and center the wheel on it
+	//	Step 3:
+	// Home found.  Align to the center of the position sensor mark.
 	//------------------------------------------------------------
-	if ( bHome ) {
+	this->fCurrent_Angle = 0.0f;
+	this->iCurrent_Filter = 0;
 
-		this->fCurrent_Angle = 0.0f;
-		this->iCurrent_Filter = 0;
+	// now find the width of the position mark in motor steps and position the wheel at the half-way point
+	FWM_DEBUG_MSG_LN( "Finding positon mark width." );
 
-		// now find the width of the position mark in motor steps and position the wheel at the half-way point
-		FWM_DEBUG_MSG_LN( "Finding positon mark width." );
+	// first, make sure the position sensor is active
+	do {
+		FWM_DEBUG_MSG_LN( "Waiting for position sensor to be active" );
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
 
-		// first, make sure the position sensor is active
-		do {
-			FWM_DEBUG_MSG_LN( "Waiting for position sensor to be active" );
-			Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+		if ( !bPosition_Sensor_Active ) {
+			motor.move( 1 );
+			motor.runToPosition();
+		}
 
-			if ( !bPosition_Sensor_Active ) {
-				motor.move( 1 );
-				motor.runToPosition();
-			}
-
-		} while ( !bPosition_Sensor_Active );
+	} while ( !bPosition_Sensor_Active );
 
 
-		FWM_DEBUG_MSG_LN( "Position sensor is active" );
+	FWM_DEBUG_MSG_LN( "Position sensor is active" );
 
-		// then wait for it to be inactive
-		iPosition_Marker_Width = 0;
-		do {
-			FWM_DEBUG_MSG_LN( "Waiting for position sensor to be inactive" );
-			Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
+	// then wait for it to be inactive
+	iPosition_Marker_Width = 0;
+	do {
+		FWM_DEBUG_MSG_LN( "Waiting for position sensor to be inactive" );
+		Read_Sensors( &bHome_Sensor_Active, &bPosition_Sensor_Active );
 
-			if ( bPosition_Sensor_Active ) {
-				iPosition_Marker_Width++;
-				motor.move( 1 );
-				motor.runToPosition();
-			}
+		if ( bPosition_Sensor_Active ) {
+			iPosition_Marker_Width++;
+			motor.move( 1 );
+			motor.runToPosition();
+		}
 
-		} while ( bPosition_Sensor_Active );
+	} while ( bPosition_Sensor_Active );
 
-		FWM_DEBUG_MSG_LN( "Position sensor is inactive" );
+	FWM_DEBUG_MSG_LN( "Position sensor is inactive" );
 
-		FWM_DEBUG_MSG( "Position mark is " );
-		FWM_DEBUG_MSG_VAL( iPosition_Marker_Width, DEC );
-		FWM_DEBUG_MSG_LN( " steps wide." );
+	FWM_DEBUG_MSG( "Position mark is " );
+	FWM_DEBUG_MSG_VAL( iPosition_Marker_Width, DEC );
+	FWM_DEBUG_MSG_LN( " steps wide." );
 
-		iPosition_Marker_Width = -( iPosition_Marker_Width / 2 );
-		motor.move( iPosition_Marker_Width );
-		motor.runToPosition();
+	iPosition_Marker_Width = -( iPosition_Marker_Width / 2 );
+	motor.move( iPosition_Marker_Width );
+	motor.runToPosition();
 
-		FWM_DEBUG_MSG( "Moved back " );
-		FWM_DEBUG_MSG_VAL( iPosition_Marker_Width, DEC );
-		FWM_DEBUG_MSG_LN( " steps." );
-	}
+	FWM_DEBUG_MSG( "Moved back " );
+	FWM_DEBUG_MSG_VAL( iPosition_Marker_Width, DEC );
+	FWM_DEBUG_MSG_LN( " steps." );
 
 	//------------------------------------------------------------
 	//	Hold the wheel at the current position
 	//------------------------------------------------------------
-
-	// energize coils - the motor will hold position
 	motor.enableOutputs();
 	Set_Current_Position_As_Home();
 
+	//------------------------------------------------------------
+	//	Return the normal settings
+	//------------------------------------------------------------
 	motor.setMaxSpeed( NORMAL_SPEED );
 	motor.setAcceleration( NORMAL_ACCELERATION );
 
