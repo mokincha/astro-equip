@@ -67,7 +67,7 @@
 #define	IRS_POSITION_THRESHOLD_FACTOR				( 0.7f )
 
 #define SENSOR_HOME_ADAPTIVE_THRESHOLD_MAX_DIFF				775		// the global min/max difference has to be within this distance from the defaults to be considered valid
-#define SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF				720		// the global min/max difference has to be at least this distance from the defaults to be considered valid
+#define SENSOR_HOME_ADAPTIVE_THRESHOLD_MIN_DIFF				700		// the global min/max difference has to be at least this distance from the defaults to be considered valid
 																	//
 #define SENSOR_POSITION_ADAPTIVE_THRESHOLD_MAX_DIFF			850		// the global min/max difference has to be within this distance from the defaults to be considered valid
 #define SENSOR_POSITION_ADAPTIVE_THRESHOLD_MIN_DIFF			650		// the global min/max difference has to be at least this distance from the defaults to be considered valid
