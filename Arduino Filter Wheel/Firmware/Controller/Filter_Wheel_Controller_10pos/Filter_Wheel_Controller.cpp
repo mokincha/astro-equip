@@ -105,6 +105,7 @@ void    setup() {
     // This should be done first so that error messages can be
     // seen if device configuration fails.
     Serial.begin( 115200 );
+	Serial.setTimeout( 100 );
 
     IMA_DEBUG_MSG_LN( "Setup: start... " );
 
@@ -347,6 +348,7 @@ void    loop() {
         // since the move takes time.
         filter_wheel_controller.Set_Target_Filter( iTarget_Position );
 
+//		Serial.println( "Starting move" );
     }
 
 
@@ -368,7 +370,7 @@ void    loop() {
 		// Just stopped moving.  Check the position sensor
 		if ( !bPosition_Sensor_Active ) {
 
-			Serial.println( "Out of position.  Homing" );
+//			Serial.println( "Out of position.  Homing" );
 
 			// save the current target position
 			iTarget_Position = filter_wheel_controller.Get_Current_Filter();
@@ -384,8 +386,8 @@ void    loop() {
 	        delay( 500 );
 
 			// go back to the target position
-			Serial.print( "Returning to " );
-			Serial.println( iTarget_Position, DEC );
+//			Serial.print( "Returning to " );
+//			Serial.println( iTarget_Position, DEC );
 
 
 			filter_wheel_controller.Set_Target_Filter( iTarget_Position );
@@ -394,10 +396,10 @@ void    loop() {
 			// Position sensor is active
 			if ( bHome_Sensor_Active ) {
 
-				IMA_MSG_LN( "Home active" );
+//				IMA_MSG_LN( "Home active" );
 				 if ( filter_wheel_controller.Get_Current_Filter() != 0 ) {
 					
-					IMA_MSG_LN( "Auto-reseting to home position" );
+//					IMA_MSG_LN( "Auto-reseting to home position" );
 					filter_wheel_controller.Set_Current_Position_As_Home();
 				}
 			}
