@@ -352,7 +352,7 @@ void    Read_Sensors_Debug( void ) {
 		iPosition_Reading_Dark += analogRead( PIN_SENSOR_POSITION );
 	}
 
-#if 1
+#if 0
 	IRS_MSG( "HOME: Br:" );
 	IRS_MSG_VAL( iHome_Reading_Bright, DEC );
 	IRS_MSG( ", dk:" );
@@ -404,7 +404,7 @@ void    Read_Sensors_Debug( void ) {
 		bIs_Position_Sensor_Active = ( iPosition_Reading_Diff > iPosition_Threshold );
 	}
 
-#if 1
+#if 0
 	//------------------------------------------------------------
 	// report HOME sensor stats
 	//------------------------------------------------------------

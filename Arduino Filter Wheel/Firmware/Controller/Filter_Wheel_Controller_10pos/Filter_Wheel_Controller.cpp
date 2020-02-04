@@ -104,7 +104,7 @@ void    setup() {
     // Open the serial port, and set the data rate to 9600 bps.
     // This should be done first so that error messages can be
     // seen if device configuration fails.
-    Serial.begin( 115200 );
+    Serial.begin( 9600 );
 	Serial.setTimeout( 100 );
 
     IMA_DEBUG_MSG_LN( "Setup: start... " );
@@ -296,7 +296,16 @@ void    loop() {
     if ( Serial.available() > 0 ) {
 
         ASCOMcmd = Serial.readStringUntil( '#' );  // Terminator so arduino knows when the message ends
-
+#if 0
+        // Print the command to the LCD
+        display.clearDisplay();
+        display.setTextSize( 2 ); // Draw 2X-scale text
+        display.setTextColor( WHITE );
+        display.setCursor( 0, 16 );
+        display.print( ASCOMcmd );
+        display.display();
+#endif
+              
         if ( ASCOMcmd == "GETFILTER" ) {
             Serial.print( iLast_Reported_Position );
             Serial.println( "#" );  // Similarly, so ASCOM knows
