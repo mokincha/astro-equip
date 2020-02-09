@@ -66,6 +66,8 @@
 #define	DEW_CAP_HEATER_CHANNEL_MAIN_SCOPE	0
 #define	DEW_CAP_HEATER_CHANNEL_GUIDE_SCOPE	1
 
+#define	DEW_CAP_HEATER_POWER_OUTPUT_MAX		255.0f
+
 #define	DEW_TEMPERATURE_OFFSET_IN_C			5.0f		// Keep the scope a little about the Dew point
 #define	SAMPLE_RATE_IN_MS					5000		// The loop sample rate
 

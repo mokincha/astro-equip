@@ -478,9 +478,9 @@ float	Get_Temperature(t_sTemp_Sensor* pTemp_Sensor_Struct ) {
 
 	// call sensors.requestTemperatures() to issue a global temperature 
 	// request to all devices on the bus
-	IMA_DEBUG_MSG("Requesting temperatures...");
+//	IMA_DEBUG_MSG("Requesting temperatures...");
 	pTemp_Sensor_Struct->pSensor->requestTemperatures(); // Send the command to get temperatures
-	IMA_DEBUG_MSG_LN("DONE");
+//	IMA_DEBUG_MSG_LN("DONE");
 	// After we got the temperatures, we can print them here.
 	// We use the function ByIndex, and as an example get the temperature from the first sensor only.
 
@@ -526,16 +526,29 @@ void	Run_PI_Loop( t_sPID_State* pPID_State_Struct ) {
 	// Compute the error
 	float fError = pPID_State_Struct->fSetPoint - pPID_State_Struct->fInput;
 
+#if	0
+
+	// Run a proper PID loop
 	// Update state variables
 	pPID_State_Struct->fIntegralAccumulator += fError;
 
-  // Clmap to reasonable values.
+  // Clamp to reasonable values.
   pPID_State_Struct->fIntegralAccumulator = ( pPID_State_Struct->fIntegralAccumulator > PID_INTEGRATOR_UPPER_LIMIT ) ? PID_INTEGRATOR_UPPER_LIMIT : pPID_State_Struct->fIntegralAccumulator;
   pPID_State_Struct->fIntegralAccumulator = ( pPID_State_Struct->fIntegralAccumulator < PID_INTEGRATOR_LOWER_LIMIT ) ? PID_INTEGRATOR_LOWER_LIMIT : pPID_State_Struct->fIntegralAccumulator;
   
 	// Compute the output
 	pPID_State_Struct->fOutput = pPID_State_Struct->fKp * fError;
 	pPID_State_Struct->fOutput += pPID_State_Struct->fKi * pPID_State_Struct->fIntegralAccumulator;
+#else
+
+	// Run a simple on/off controller
+	if ( fError > 0 ) {
+		// if the set point is greater than the current value, run the heater.
+		pPID_State_Struct->fOutput = DEW_CAP_HEATER_POWER_OUTPUT_MAX;
+	} else {
+		pPID_State_Struct->fOutput = 0;
+	}
+#endif
 
 }
 
@@ -565,10 +578,10 @@ void	Set_Heater_Output( t_sHeater* pHeater, float fHeater_Power_Level ) {
 		// clip negative values to zero.
 		uPower_Output = 0;
 
-	} else if ( fHeater_Power_Level >= 255.0f) {
+	} else if ( fHeater_Power_Level >= DEW_CAP_HEATER_POWER_OUTPUT_MAX ) {
 
-		// clip positive values to 255
-		uPower_Output = 255;
+		// clip positive values to DEW_CAP_HEATER_POWER_OUTPUT_MAX
+		uPower_Output = DEW_CAP_HEATER_POWER_OUTPUT_MAX;
 
 	} else {
 
