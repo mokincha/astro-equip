@@ -31,19 +31,31 @@
 #include "Dew_Cap_Heater_Controller.h"
 #include "Pin_Definitions.h"
 
+
+//============================================
+// 	Program Options
+//============================================
+//#define		USE_KNOB
+#define	USE_SSD1306_DISPLAY
+//#define	SERVICE_SENSORS_AND_HEATERS
+
 //============================================
 // 	Rotary Knob
 //============================================
+#ifdef	USE_KNOB
 #include <RotaryEncoder.h>				// rotary knob
 int 	lastPos = 0;
-int 	newPos;
 // Setup a RotaryEncoder for pins A2 and A3:
 RotaryEncoder encoder( PIN_KNOB_PHASE_A, PIN_KNOB_PHASE_B );
+#endif	// USE_KNOB
+int 	newPos;
 
 
 //============================================
 // Display
 //============================================
+
+#ifdef	USE_SSD1306_DISPLAY
 #include <Wire.h>						// Display and T/RH sensor
 #include <Adafruit_GFX.h>				// Display
 #include <Adafruit_SSD1306.h>
@@ -53,6 +65,7 @@ RotaryEncoder encoder( PIN_KNOB_PHASE_A, PIN_KNOB_PHASE_B );
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire );
+#endif
 bool  	bUpdate_Display = true;
 bool	bDisplay_Ready;
 
@@ -60,6 +73,7 @@ bool	bDisplay_Ready;
 //============================================
 // Temp Sensors
 //============================================
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 #include <OneWire.h>					// temp sensor
 #include <DallasTemperature.h>			// temp sensor
 
@@ -69,24 +83,28 @@ OneWire g_OneWire1( PIN_TEMP_SENSOR_CH1 );
 // Pass our oneWire references to Dallas Temperature. 
 DallasTemperature g_DS1820_Sensor0( &g_OneWire0 );
 DallasTemperature g_DS1820_Sensor1( &g_OneWire1 );
+#endif	// SERVICE_SENSORS_AND_HEATERS
+
 
 //============================================
 // Temp/RH Sensor
 //============================================
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 #include <DHT.h>
 #include <DHT_U.h>
 
 DHT_Unified		g_DHT22_Sensor( PIN_TEMP_HUMIDITY_SENSOR, DHT_TYPE );
 
 t_sTemp_Humidity_Sensor	g_Temp_Humidity_Sensor;
-
+#endif	// SERVICE_SENSORS_AND_HEATERS
 
 //============================================
 // Heaters
 //============================================
 // Heater and PID loop data
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 t_sDew_Cap_Heater	g_Dew_Cap_Heater[ NUM_CHANNELS ];
-
+#endif
 
 //============================================
 // Misc
@@ -149,6 +167,7 @@ void    setup() {
 	//---------------------------------------------
 	// Prepare the display
 	//---------------------------------------------
+#ifdef	USE_SSD1306_DISPLAY
 	bDisplay_Ready = display.begin(SSD1306_SWITCHCAPVCC, 0x3C );
 
 	// wait for the display to wake up...
@@ -158,48 +177,28 @@ void    setup() {
 
 		IMA_DEBUG_MSG_LN( "SSD1306 allocation success" );
 
-	// Update the display
-	Display_Show_Status( DISPLAY_STATUS_BOOTING_UP );
+		// Update the display
+		Display_Show_Status( DISPLAY_STATUS_BOOTING_UP );
 
 	} else {
 		IMA_DEBUG_MSG_LN( "Warning: SSD1306 allocation error" );
 	}
+#endif	// USE_SSD1306_DISPLAY
 
-#if 0
-	//---------------------------------------------
-	// prepare the motor
-	//---------------------------------------------
-	IMA_DEBUG_MSG_LN( "FWC motor start" );
-	filter_wheel_controller.Init( 360, NUM_FILTERS );
-	IMA_DEBUG_MSG_LN( "FWC motor done" );
-
-	IMA_DEBUG_MSG_LN( "FWC motor home start" );
-  Display_Show_Status( DISPLAY_STATUS_SEARCHING_FOR_HOME );
-	if ( filter_wheel_controller.Find_Home() == FWM_RESULT_SUCCESS ) {
-    
-      Display_Show_Status( DISPLAY_STATUS_FOUND_HOME );
-      delay( 1000 );
-      
-	} else {
-    
-      Display_Show_Status( DISPLAY_STATUS_DIDNT_FIND_HOME );
-      delay( 1000 );
-	}
-
-  
-	IMA_DEBUG_MSG_LN( "FWC motor home done" );
-#endif
 
 	//---------------------------------------------
 	// Prepare the rotation knob
 	//---------------------------------------------
+#ifdef	USE_KNOB
 	encoder.setPosition( 0 / ROTARYSTEPS );	// start with the value of 10.
 	newPos = 0;
+#endif	// USE_KNOB
 
 
 	//---------------------------------------------
 	// Prepare PID Loops, temp sensors, and PWM channels
 	//---------------------------------------------
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 	g_Dew_Cap_Heater[ 0 ].sHeater.uPin = PIN_HEATER_POWER_CH0; 
 	g_Dew_Cap_Heater[ 1 ].sHeater.uPin = PIN_HEATER_POWER_CH1; 
 	g_Dew_Cap_Heater[ 0 ].sTemp_Sensor.pSensor = &g_DS1820_Sensor0; 
@@ -229,12 +228,16 @@ void    setup() {
 	// Prepare the DHT22 temp/humidity sensor
 	//---------------------------------------------
 	Init_Temp_Humidity_Sensor( &g_Temp_Humidity_Sensor );
+#endif	// SERVICE_SENSORS_AND_HEATERS
+
 
 	//---------------------------------------------
 	// Finish up
 	//---------------------------------------------
 	// Clear the buffer
+#ifdef	USE_SSD1306_DISPLAY
 	display.clearDisplay();
+#endif
 
 	g_uLast_Sample_Time_in_ms = millis();
 }
@@ -264,7 +267,7 @@ void    loop() {
 	CommandParserService();
 #endif
 
-#if 0
+#ifdef	USE_KNOB
 	//---------------------------------------------
 	// Service rotary switch
 	//---------------------------------------------
@@ -288,8 +291,10 @@ void    loop() {
 
 		newPos = ROTARYMIN;
 	} // if
-#endif
+#endif	// USE_KNOB
 
+
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 	//---------------------------------------------
 	// Get ambient Temp
 	//---------------------------------------------
@@ -305,10 +310,10 @@ void    loop() {
 
 	} else {
 
-    IMA_MSG_LN( "");
-    IMA_MSG_LN( "======================================");
-		IMA_MSG_LN( "Servicing PID Loops");
-    IMA_MSG_LN( "======================================");
+		IMA_MSG_LN( "");
+		IMA_MSG_LN( "======================================");
+			IMA_MSG_LN( "Servicing PID Loops");
+		IMA_MSG_LN( "======================================");
 
 		// Update the sample time
 		g_uLast_Sample_Time_in_ms = uNow + SAMPLE_RATE_IN_MS;
@@ -356,30 +361,35 @@ void    loop() {
 			IMA_DEBUG_MSG_LN( "" ); 
 		}
 
+#ifdef	USE_SSD1306_DISPLAY
 		// Update the display
 		if ( bDisplay_Ready ) {
 			Display_Show_Status( DISPLAY_STATUS_SHOW_STATUS );
 		}
+#endif	// USE_SSD1306_DISPLAY
 
 	}
+#endif	// SERVICE_SENSORS_AND_HEATERS
 
 	// save current timestamp so we can detect overflows
 	uOld_Now = uNow;
 
-#if 0
+#ifdef USE_SSD1306_DISPLAY
 	//---------------------------------------------
 	// Update the display
 	//---------------------------------------------
-	if ( bDisplay_Ready && bUpdate_Display && bDone_Moving ) {
+//	if ( bDisplay_Ready && bUpdate_Display && bDone_Moving ) {
+	if ( bDisplay_Ready && bUpdate_Display ) {
 
-    Display_Show_Position( newPos );
+		Display_Show_Position( newPos );
 
 		bUpdate_Display = false;
 	}
-#endif
+#endif	// USE_SSD1306_DISPLAY
 
 }
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Init_Temp_Humidity_Sensor
 //============================================
@@ -393,8 +403,10 @@ float	Init_Temp_Humidity_Sensor( t_sTemp_Humidity_Sensor* pSensor_Struct ) {
 	pSensor_Struct->fTemperature_in_C = 20.0f;
 	pSensor_Struct->fRelative_Humidity_in_Percent = 50.0f;
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Get_Dew_Point_Temp_in_C
 //============================================
@@ -450,8 +462,10 @@ float	Get_Dew_Point_Temp_in_C( t_sTemp_Humidity_Sensor* pSensor_Struct ) {
 
 	return Tdp;
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Init_Temp_Sensor
 //============================================
@@ -464,13 +478,15 @@ float	Init_Temp_Sensor( t_sTemp_Sensor* pTemp_Sensor_Struct ) {
 	uint16_t	device_count = pTemp_Sensor_Struct->pSensor->getDeviceCount();
 	IMA_DEBUG_MSG( "Found " );
 	IMA_DEBUG_MSG_VAL( device_count, DEC );
-	IMA_DEBUG_MSG_LN( " devices" ); 
+	IMA_DEBUG_MSG_LN( " temp sensor" ); 
 
 	// Since we haven't gotten a reading, flag whatever we have as bad
 	pTemp_Sensor_Struct->bReading_Is_Good = false;
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Get_Temperature
 //============================================
@@ -503,8 +519,10 @@ float	Get_Temperature(t_sTemp_Sensor* pTemp_Sensor_Struct ) {
 
 	return  pTemp_Sensor_Struct->fReading_in_C;
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Init_PI_Loop
 //============================================
@@ -516,8 +534,10 @@ void	Init_PI_Loop( t_sPID_State* pPID_State_Struct ) {
 	pPID_State_Struct->fInput = 0.0f;
 	pPID_State_Struct->fOutput = 0.0f;
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Run_PI_Loop
 //============================================
@@ -551,8 +571,10 @@ void	Run_PI_Loop( t_sPID_State* pPID_State_Struct ) {
 #endif
 
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Init_Heater_Output
 //============================================
@@ -564,8 +586,10 @@ void	Init_Heater_Output( t_sHeater* pHeater ) {
 	// drive to zero.  I.e. turn off the heater.
 	analogWrite( pHeater->uPin, 0 );
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
+#ifdef	SERVICE_SENSORS_AND_HEATERS
 //============================================
 // Set_Heater_Output
 //============================================
@@ -598,9 +622,13 @@ void	Set_Heater_Output( t_sHeater* pHeater, float fHeater_Power_Level ) {
 	analogWrite( pHeater->uPin, uPower_Output );
 	
 }
+#endif	//	SERVICE_SENSORS_AND_HEATERS
 
 
-#if 1
+#ifdef	USE_SSD1306_DISPLAY
+//============================================
+// Display_Show_Status
+//============================================
 void  Display_Show_Status( tDisplay_Status display_status ) {
 
   display.clearDisplay();
@@ -640,9 +668,9 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
     display.display();
 
 }
-#endif
+#endif	// USE_SSD1306_DISPLAY
 
-#if 0
+#ifdef USE_SSD1306_DISPLAY
 void  Display_Show_Position( uint8_t  pos ) {
 
   display.clearDisplay();
@@ -693,5 +721,5 @@ void  Display_Show_Position( uint8_t  pos ) {
     display.display();
 
 }
-#endif
+#endif	// USE_SSD1306_DISPLAY
 
