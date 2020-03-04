@@ -37,7 +37,7 @@
 //============================================
 //#define		USE_KNOB
 #define	USE_SSD1306_DISPLAY
-//#define	SERVICE_SENSORS_AND_HEATERS
+#define	SERVICE_SENSORS_AND_HEATERS
 
 //============================================
 // 	Rotary Knob
@@ -97,6 +97,7 @@ DHT_Unified		g_DHT22_Sensor( PIN_TEMP_HUMIDITY_SENSOR, DHT_TYPE );
 
 t_sTemp_Humidity_Sensor	g_Temp_Humidity_Sensor;
 #endif	// SERVICE_SENSORS_AND_HEATERS
+float g_fDew_Point_in_C;
 
 //============================================
 // Heaters
@@ -137,7 +138,11 @@ void    setup() {
 	// seen if device configuration fails.
 	Serial.begin( 115200 );
 
+  IMA_DEBUG_MSG_LN( "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
+  IMA_DEBUG_MSG_LN( "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
 	IMA_DEBUG_MSG_LN( "Setup: start... " );
+  IMA_DEBUG_MSG_LN( "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
+  IMA_DEBUG_MSG_LN( "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
 
 #if 0
 
@@ -231,6 +236,7 @@ void    setup() {
 #endif	// SERVICE_SENSORS_AND_HEATERS
 
 
+
 	//---------------------------------------------
 	// Finish up
 	//---------------------------------------------
@@ -259,7 +265,6 @@ void    setup() {
 void    loop() {
 
 	uint16_t	i;
-	float	fDew_Point_in_C;
 	uint32_t	uNow;
 
 #if 0
@@ -310,10 +315,10 @@ void    loop() {
 
 	} else {
 
-		IMA_MSG_LN( "");
-		IMA_MSG_LN( "======================================");
-			IMA_MSG_LN( "Servicing PID Loops");
-		IMA_MSG_LN( "======================================");
+		IMA_DEBUG_MSG_LN( "");
+		IMA_DEBUG_MSG_LN( "======================================");
+		IMA_DEBUG_MSG_LN( "Servicing PID Loops");
+		IMA_DEBUG_MSG_LN( "======================================");
 
 		// Update the sample time
 		g_uLast_Sample_Time_in_ms = uNow + SAMPLE_RATE_IN_MS;
@@ -321,7 +326,8 @@ void    loop() {
 		IMA_DEBUG_MSG_VAL( g_uLast_Sample_Time_in_ms, DEC );
 		IMA_DEBUG_MSG_LN( "" ); 
 
-		fDew_Point_in_C = Get_Dew_Point_Temp_in_C( &g_Temp_Humidity_Sensor );
+		g_fDew_Point_in_C = Get_Dew_Point_Temp_in_C( &g_Temp_Humidity_Sensor );
+//    g_fDew_Point_in_C = 100;
 
 		//---------------------------------------------
 		// Service PID loops
@@ -339,7 +345,7 @@ void    loop() {
 			if ( g_Dew_Cap_Heater[i].sTemp_Sensor.bReading_Is_Good) {
 
 				// Update the setpoint temp
-				g_Dew_Cap_Heater[i].sPID_State.fSetPoint = fDew_Point_in_C + DEW_TEMPERATURE_OFFSET_IN_C;
+				g_Dew_Cap_Heater[i].sPID_State.fSetPoint = g_fDew_Point_in_C + DEW_TEMPERATURE_OFFSET_IN_C;
 
 				// Update the current temp
 				g_Dew_Cap_Heater[i].sPID_State.fInput = g_Dew_Cap_Heater[i].sTemp_Sensor.fReading_in_C;
@@ -373,19 +379,6 @@ void    loop() {
 
 	// save current timestamp so we can detect overflows
 	uOld_Now = uNow;
-
-#ifdef USE_SSD1306_DISPLAY
-	//---------------------------------------------
-	// Update the display
-	//---------------------------------------------
-//	if ( bDisplay_Ready && bUpdate_Display && bDone_Moving ) {
-	if ( bDisplay_Ready && bUpdate_Display ) {
-
-		Display_Show_Position( newPos );
-
-		bUpdate_Display = false;
-	}
-#endif	// USE_SSD1306_DISPLAY
 
 }
 
@@ -421,10 +414,12 @@ float	Get_Dew_Point_Temp_in_C( t_sTemp_Humidity_Sensor* pSensor_Struct ) {
 	// Get temperature event and print its value.
 	pSensor_Struct->pSensor->temperature().getEvent( &event );
 
+  pSensor_Struct->bValid = true;
 	if ( isnan( event.temperature ) ) {
 
 		IMA_DEBUG_MSG_LN( "Error reading temperature!" );
-
+    pSensor_Struct->bValid = false;
+    
 	} else {
 
 		IMA_DEBUG_MSG( "Temperature: " );
@@ -652,14 +647,72 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
 			Ch1 current temp
 			Ch1 output power level
 		*/
+      uint16_t  uiPower;
+      uint8_t   uCol;
+#define ROW_SPACING   10
+#define CHANNEL_READOUT_ROW_START   35
+      
       display.clearDisplay();
   
-      display.setTextSize(2); // Draw 2X-scale text
+      display.setTextSize(1); // Draw 2X-scale text
       display.setTextColor( WHITE );
-      display.setCursor(0, 16);
-      display.print( "  Didn't" );
-      display.println( "Find Home" );
-      display.display();    // Show initial text
+      display.setCursor(0, 0);
+//      display.setTextSize(2); // Draw 2X-scale text
+      display.println( F( "Ambient" ) );
+//      display.setTextSize(1); // Draw 2X-scale text
+
+      // Ambient Temperature
+      display.print( F("Temp: ") );
+      if ( g_Temp_Humidity_Sensor.bValid ) {
+        display.print( g_Temp_Humidity_Sensor.fTemperature_in_C );
+      } else {
+        display.print( F( "---- " ) );
+      }
+      display.println( F("C" ) );
+
+      // Ambient Humidity
+      display.print( "Hmdty: " );
+      if ( g_Temp_Humidity_Sensor.bValid ) {
+        display.print( g_Temp_Humidity_Sensor.fRelative_Humidity_in_Percent );
+      } else {
+        display.print( F( "---- " ) );
+      }
+      display.println( F( "%" ) );
+
+      // Dew Point Temperature
+      display.print( F("Dew: ") );
+      if ( g_Temp_Humidity_Sensor.bValid ) {
+        display.print( g_fDew_Point_in_C );
+      } else {
+        display.print( F( "---- " ) );
+      }
+      display.println( F("C" ) );
+
+      // Channel values
+      display.setTextSize(1); // Draw 2X-scale text
+      for( uint8_t i=0; i!= 2; i++ ) {
+
+        display.setCursor( i*64, CHANNEL_READOUT_ROW_START );
+//        display.setTextSize(2); // Draw 2X-scale text
+        display.print( "Channel " );
+//        display.setTextSize(1); // Draw 2X-scale text
+        display.println( i );
+        
+        display.setCursor( i*64, CHANNEL_READOUT_ROW_START + ROW_SPACING*1 );
+        display.print( "T: " );
+        if ( g_Dew_Cap_Heater[ i ].sTemp_Sensor.bReading_Is_Good) {
+            display.print( g_Dew_Cap_Heater[i].sTemp_Sensor.fReading_in_C );
+        } else {
+            display.print( F( "---- " ) );
+        }
+        display.println( F( "C" ) );
+        
+        display.setCursor( i*64, CHANNEL_READOUT_ROW_START + ROW_SPACING*2 );
+        display.print( F( "Pwr: " ) );
+        uiPower = ( 100 * g_Dew_Cap_Heater[i].sPID_State.fOutput)  / 255;
+        display.print( uiPower );
+        display.println( F( "%" ) );
+      }
       
       break;
       
@@ -670,56 +723,4 @@ void  Display_Show_Status( tDisplay_Status display_status ) {
 }
 #endif	// USE_SSD1306_DISPLAY
 
-#ifdef USE_SSD1306_DISPLAY
-void  Display_Show_Position( uint8_t  pos ) {
-
-  display.clearDisplay();
-
-    display.setTextSize(3); // Draw 2X-scale text
-    display.setTextColor( WHITE );
-    display.setCursor(10, 16);
-    display.print( "Pos: " );
-    display.println( pos );
-
-    display.setTextSize( 2 ); // Draw 2X-scale text
-    display.setTextColor( WHITE );
-    display.setCursor(10, 45);
-
-    switch ( pos ) {
-      case 0:
-        display.println( "   Open" );
-        break;
-      case 1:
-        display.println( "   Dark" );
-        break;
-      case 2:
-        display.println( " All Pass" );
-        break;
-      case 3:
-        display.println( "   Red" );
-        break;
-      case 4:
-        display.println( "  Green" );
-        break;
-      case 5:
-        display.println( "   Blue" );
-        break;
-      case 6:
-        display.println( "   LPF" );
-        break;
-      case 7:
-        display.println( " Grating" );
-        break;
-      case 8:
-        display.println( " ND Moon" );
-        break;
-      case 9:
-        display.println( "  Aux 1" );
-        break;
-    }
-  
-    display.display();
-
-}
-#endif	// USE_SSD1306_DISPLAY
 

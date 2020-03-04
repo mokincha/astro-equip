@@ -43,11 +43,11 @@ extern "C"
 
 // Heater 0 Pin set 
 #define	PIN_HEATER_POWER_CH0		5
-#define	PIN_TEMP_SENSOR_CH0			7
+#define	PIN_TEMP_SENSOR_CH0			4
 
 // Heater 1 Pin set 
 #define	PIN_HEATER_POWER_CH1		6
-#define	PIN_TEMP_SENSOR_CH1			8
+#define	PIN_TEMP_SENSOR_CH1			7
 
 // Rotary Encoder
 #define	PIN_KNOB_PHASE_A			2

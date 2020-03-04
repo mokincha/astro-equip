@@ -13,7 +13,7 @@
 #ifndef	DEW_CAP_HEATER_CONTROLLER_H
 #define	DEW_CAP_HEATER_CONTROLLER_H
 
-#define DEBUG // Define this symbol to enable debug code,
+//#define DEBUG // Define this symbol to enable debug code,
 // or comment it out to disable debug code.
 
 // debug output settings
@@ -99,6 +99,7 @@ typedef	struct t_sTemp_Humidity_Sensor {
 	DHT_Unified* 	pSensor;
 	float			fTemperature_in_C;
 	float			fRelative_Humidity_in_Percent;
+  bool      bValid;
 } t_sTemp_Humidity_Sensor;
 
 // PID Loop structure
